@@ -5,11 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sections = document.querySelectorAll('.page-section');
 
     function switchPage(targetId) {
-        // Remove active class from all links and sections
         navItems.forEach(item => item.classList.remove('active'));
         sections.forEach(section => section.classList.remove('active'));
 
-        // Add active class to clicked link and target section
         const activeNav = document.querySelector(`.nav-item[data-target="${targetId}"]`);
         const activeSection = document.getElementById(targetId);
         
@@ -17,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activeNav.classList.add('active');
             activeSection.classList.add('active');
             
-            // Smooth scroll to top when changing pages
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
@@ -44,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const originalText = submitBtn.innerHTML;
             
-            // Simulate sending
             submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> TRANSMITTING...';
             submitBtn.style.opacity = '0.7';
             submitBtn.disabled = true;
@@ -56,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 contactForm.reset();
 
-                // Revert button after 3 seconds
                 setTimeout(() => {
                     submitBtn.innerHTML = originalText;
                     submitBtn.style.background = '';
@@ -75,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (homeSection && heroCard) {
         homeSection.addEventListener('mousemove', (e) => {
-            // Calculate mouse position relative to center of screen
             const x = (window.innerWidth / 2 - e.pageX) / 40;
             const y = (window.innerHeight / 2 - e.pageY) / 40;
             
@@ -87,13 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
             heroCard.style.transition = 'transform 0.5s ease';
         });
         
-        // Reset transition on enter to make it responsive
         homeSection.addEventListener('mouseenter', () => {
             heroCard.style.transition = 'transform 0.1s ease-out';
         });
     }
 
-    // --- 4. Add a subtle hover effect to the gallery items ---
+    // --- 4. Subtle Hover Effect on Gallery Items ---
     const vaultItems = document.querySelectorAll('.vault-item');
     vaultItems.forEach(item => {
         item.addEventListener('mouseenter', () => {

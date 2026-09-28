@@ -13,11 +13,23 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Ambient Background -->
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
-    <div class="ambient-glow glow-3"></div>
+    <!-- Static Performant Background -->
     <div class="cyber-grid"></div>
+    <div class="noise-overlay"></div>
+    
+    <!-- Animated Floating Code Background -->
+    <div class="code-rain-container">
+        <span class="code-snippet">function init() {</span>
+        <span class="code-snippet">let player = {</span>
+        <span class="code-snippet">if (collision) {</span>
+        <span class="code-snippet">for (let i = 0; i < 10; i++)</span>
+        <span class="code-snippet">return true;</span>
+        <span class="code-snippet">class Enemy extends</span>
+        <span class="code-snippet">import { Game } from</span>
+        <span class="code-snippet">const SPEED = 5;</span>
+        <span class="code-snippet">void Update() {</span>
+        <span class="code-snippet">} else {</span>
+    </div>
 
     <!-- Main Content Area -->
     <main class="content-area">
@@ -26,7 +38,6 @@
         <section id="home" class="page-section active">
             <div class="hub-layout">
                 <div class="hub-text">
-                    <div class="sys-badge"><span class="dot"></span> SYSTEM READY</div>
                     <h1 class="hero-title">Crafting Worlds<br><span class="gradient-text">Through Code.</span></h1>
                     <p class="hero-desc">I am an indie game developer and creative enthusiast specializing in immersive digital experiences, gameplay mechanics, and interactive storytelling.</p>
                     
@@ -42,7 +53,7 @@
                 <div class="hub-visual">
                     <div class="glass-card hero-card">
                         <!-- REPLACE WITH YOUR AVATAR OR GAME RENDER -->
-                        <img src="https://placehold.co/600x600/0B0F19/00E5FF?text=Game+Dev+Avatar" alt="Avatar">
+                        <img src="https://placehold.co/600x600/0B0F19/00E5FF?text=Game+Dev+Avatar" alt="Avatar" draggable="false">
                     </div>
                 </div>
             </div>
@@ -74,20 +85,9 @@
                         <span class="tag">UI/UX Design</span>
                         <span class="tag">Human-Computer Interaction</span>
                         <span class="tag">Git & GitHub</span>
-                    </div>
-                    
-                    <h3 style="margin-top: 30px;">Core Attributes</h3>
-                    <div class="stat-item">
-                        <div class="stat-info"><span>Programming</span> <span>90%</span></div>
-                        <div class="progress-track"><div class="progress-fill" style="width: 90%;"></div></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-info"><span>Game Design</span> <span>85%</span></div>
-                        <div class="progress-track"><div class="progress-fill" style="width: 85%;"></div></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-info"><span>3D Art & Animation</span> <span>75%</span></div>
-                        <div class="progress-track"><div class="progress-fill" style="width: 75%;"></div></div>
+                        <span class="tag">Agile Methodology</span>
+                        <span class="tag">Shader Programming</span>
+                        <span class="tag">3D Mathematics</span>
                     </div>
                 </div>
             </div>
@@ -105,7 +105,7 @@
                 <div class="glass-card mission-card">
                     <div class="mission-img">
                         <!-- REPLACE WITH GAME SCREENSHOT -->
-                        <img src="https://placehold.co/600x400/0B0F19/FF007F?text=Mission+01" alt="Project 1">
+                        <img src="https://placehold.co/600x400/0B0F19/FF007F?text=Mission+01" alt="Project 1" draggable="false">
                         <div class="status-badge deployed">DEPLOYED</div>
                     </div>
                     <div class="mission-info">
@@ -122,7 +122,7 @@
                 <!-- Mission 2 -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
-                        <img src="https://placehold.co/600x400/0B0F19/00E5FF?text=Mission+02" alt="Project 2">
+                        <img src="https://placehold.co/600x400/0B0F19/00E5FF?text=Mission+02" alt="Project 2" draggable="false">
                         <div class="status-badge progress">IN DEV</div>
                     </div>
                     <div class="mission-info">
@@ -139,7 +139,7 @@
                 <!-- Mission 3 -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
-                        <img src="https://placehold.co/600x400/0B0F19/FFCC00?text=Mission+03" alt="Project 3">
+                        <img src="https://placehold.co/600x400/0B0F19/FFCC00?text=Mission+03" alt="Project 3" draggable="false">
                         <div class="status-badge deployed">DEPLOYED</div>
                     </div>
                     <div class="mission-info">
@@ -165,27 +165,27 @@
             <div class="vault-grid">
                 <!-- REPLACE WITH YOUR OWN ART -->
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/FF007F?text=Concept+Art" alt="Art 1">
+                    <img src="https://placehold.co/400x400/0B0F19/FF007F?text=Concept+Art" alt="Art 1" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/00E5FF?text=3D+Render" alt="Art 2">
+                    <img src="https://placehold.co/400x400/0B0F19/00E5FF?text=3D+Render" alt="Art 2" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/FFCC00?text=UI+Mockup" alt="Art 3">
+                    <img src="https://placehold.co/400x400/0B0F19/FFCC00?text=UI+Mockup" alt="Art 3" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/9B59B6?text=Environment" alt="Art 4">
+                    <img src="https://placehold.co/400x400/0B0F19/9B59B6?text=Environment" alt="Art 4" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/2ECC71?text=Character" alt="Art 5">
+                    <img src="https://placehold.co/400x400/0B0F19/2ECC71?text=Character" alt="Art 5" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
                 <div class="vault-item">
-                    <img src="https://placehold.co/400x400/0B0F19/ECF0F1?text=Prop+Design" alt="Art 6">
+                    <img src="https://placehold.co/400x400/0B0F19/ECF0F1?text=Prop+Design" alt="Art 6" draggable="false">
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
             </div>
