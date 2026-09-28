@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 2. Contact Form Handling (Secure Transmission) ---
+    // --- 2. Contact Form Handling ---
     const contactForm = document.getElementById('contactForm');
     
     if (contactForm) {
@@ -41,12 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const originalText = submitBtn.innerHTML;
             
-            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> TRANSMITTING...';
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> SENDING...';
             submitBtn.style.opacity = '0.7';
             submitBtn.disabled = true;
 
             setTimeout(() => {
-                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> TRANSMISSION SUCCESSFUL';
+                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> MESSAGE SENT';
                 submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
                 submitBtn.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
                 
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 3. Subtle Mouse Parallax on Hero Image (Home Page) ---
+    // --- 3. Subtle Mouse Parallax on Hero Image ---
     const heroCard = document.querySelector('.hero-card');
     const homeSection = document.getElementById('home');
     
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 4. Subtle Hover Effect on Gallery Items ---
+    // --- 4. Hover Effect on Gallery Items ---
     const vaultItems = document.querySelectorAll('.vault-item');
     vaultItems.forEach(item => {
         item.addEventListener('mouseenter', () => {

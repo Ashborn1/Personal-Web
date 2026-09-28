@@ -1,6 +1,6 @@
 /* --- Modern Sci-Fi Core Variables --- */
 :root {
-    --bg-dark: #05080f; /* Darkened for better contrast */
+    --bg-dark: #05080f;
     --panel-bg: rgba(255, 255, 255, 0.04);
     --panel-border: rgba(255, 255, 255, 0.1);
     --text-main: #F1F5F9;
@@ -22,7 +22,6 @@
 
 body {
     background-color: var(--bg-dark);
-    /* PERFORMANCE OPTIMIZED BACKGROUND: Static gradients */
     background-image: 
         radial-gradient(circle at 15% 50%, rgba(0, 229, 255, 0.08), transparent 40%),
         radial-gradient(circle at 85% 30%, rgba(255, 0, 127, 0.08), transparent 40%),
@@ -48,7 +47,7 @@ img {
     -webkit-user-select: none;
 }
 
-/* --- Static, Performant Background Effects --- */
+/* --- Static Background Effects --- */
 .cyber-grid {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -68,34 +67,32 @@ img {
     pointer-events: none;
 }
 
-/* --- Animated Floating Code Background (More Visible) --- */
+/* --- Animated Floating Code Background --- */
 .code-rain-container {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     z-index: -1;
     pointer-events: none;
     overflow: hidden;
-    opacity: 0.18; /* Increased visibility */
+    opacity: 0.18;
 }
 
 .code-snippet {
     position: absolute;
     font-family: var(--font-mono);
-    font-size: 1.4rem; /* Larger text */
+    font-size: 1.4rem;
     font-weight: 700;
     white-space: nowrap;
     animation: floatCode linear infinite;
     will-change: transform;
     transform: translate3d(0, 0, 0);
-    text-shadow: 0 0 8px currentColor; /* Neon glow */
+    text-shadow: 0 0 8px currentColor;
 }
 
-/* Alternate colors for the code snippets */
 .code-snippet:nth-child(3n+1) { color: var(--accent-cyan); }
 .code-snippet:nth-child(3n+2) { color: var(--accent-magenta); }
 .code-snippet:nth-child(3n) { color: var(--accent-green); }
 
-/* Distribute the code snippets randomly */
 .code-snippet:nth-child(1) { top: 10%; left: 5%; animation-duration: 25s; animation-delay: 0s; }
 .code-snippet:nth-child(2) { top: 30%; left: 70%; animation-duration: 30s; animation-delay: -5s; }
 .code-snippet:nth-child(3) { top: 70%; left: 15%; animation-duration: 22s; animation-delay: -10s; }
@@ -245,7 +242,7 @@ img {
 }
 .full-width { width: 100%; }
 
-/* --- PAGE 1: Main Hub --- */
+/* --- PAGE 1: Home --- */
 .hub-layout {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
@@ -279,10 +276,11 @@ img {
 .hero-card { padding: 20px; border-radius: 30px; transition: transform 0.1s ease-out; }
 .hero-card img { width: 100%; max-width: 400px; height: auto; border-radius: 20px; display: block; }
 
-/* --- PAGE 2: Character Specs --- */
+/* --- PAGE 2: About --- */
 .specs-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
 .bio-card h3, .skills-card h3 { font-size: 1.4rem; margin-bottom: 20px; color: var(--text-main); }
 .bio-card p { color: var(--text-muted); margin-bottom: 15px; line-height: 1.6; }
+.bio-card strong { color: var(--text-main); }
 .skill-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
 .tag {
     padding: 8px 16px; background: rgba(255, 255, 255, 0.05);
@@ -294,7 +292,7 @@ img {
     color: var(--accent-cyan); transform: translateY(-3px);
 }
 
-/* --- PAGE 3: Mission Control --- */
+/* --- PAGE 3: Portfolio --- */
 .mission-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
 .mission-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
 .mission-img { position: relative; width: 100%; height: 200px; overflow: hidden; }
@@ -312,7 +310,7 @@ img {
 .mission-meta { display: flex; gap: 15px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; }
 .mission-info p { color: var(--text-muted); font-size: 0.95rem; flex: 1; margin-bottom: 20px; }
 
-/* --- PAGE 4: Data Vault --- */
+/* --- PAGE 4: Gallery --- */
 .vault-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
 .vault-item { position: relative; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; cursor: pointer; border: 1px solid var(--panel-border); }
 .vault-item img { width: 100%; height: 100%; object-fit: cover; transition: var(--transition); }
@@ -324,7 +322,7 @@ img {
 }
 .vault-item:hover .vault-overlay { opacity: 1; transform: scale(1.1); }
 
-/* --- PAGE 5: Comms Center --- */
+/* --- PAGE 5: Contact --- */
 .comm-panel { max-width: 800px; margin: 0 auto; padding: 0; overflow: hidden; }
 .comm-header {
     display: flex; justify-content: space-between; padding: 15px 25px;
@@ -406,7 +404,6 @@ img {
     .nav-item { padding: 8px 12px; font-size: 0.65rem; }
     .nav-item i { font-size: 1.1rem; }
     
-    /* Make code snippets smaller on mobile so they don't clutter */
     .code-snippet { font-size: 1rem; }
 }
 
