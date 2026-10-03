@@ -5,22 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>John Zyrus B. Ubay | Game Developer Portfolio</title>
 
-    <!-- Favicon (Make sure you have a favicon.png in your assets folder) -->
     <link rel="icon" type="image/png" href="assets/icon.png">
 
-    <!-- Modern Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js import map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
 </head>
 <body>
     <!-- Static Performant Background -->
     <div class="cyber-grid"></div>
     <div class="noise-overlay"></div>
-    
+
     <!-- Animated Floating Code Background -->
     <div class="code-rain-container">
         <span class="code-snippet">#include &lt;iostream&gt;</span>
@@ -123,7 +129,6 @@
             </header>
 
             <div class="mission-grid">
-                <!-- Project 1: Zenith-Hub -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
                         <img src="assets/sell1.jpg" alt="Zenith-Hub - Sell Lemons Script" draggable="false">
@@ -142,7 +147,6 @@
                     </div>
                 </div>
 
-                <!-- Project 2: Cookie Empire -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
                         <img src="assets/cookie1.png" alt="Cookie Empire" draggable="false">
@@ -161,7 +165,6 @@
                     </div>
                 </div>
 
-                <!-- Project 3: Pili-KArt -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
                         <img src="assets/pili1.png" alt="Pili-KArt - Terminal UI" draggable="false">
@@ -180,10 +183,8 @@
                     </div>
                 </div>
 
-                <!-- Project 4: Personal Portfolio Website -->
                 <div class="glass-card mission-card">
                     <div class="mission-img">
-                        <!-- UPDATED: Replaced placeholder with an actual asset -->
                         <img src="assets/web.png" alt="Personal Website - Preview" draggable="false">
                         <div class="status-badge deployed">Live</div>
                     </div>
@@ -326,6 +327,6 @@
         </a>
     </nav>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

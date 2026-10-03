@@ -1,10 +1,10 @@
 /* --- Modern Sci-Fi Core Variables --- */
 :root {
     --bg-dark: #05080f;
-    --panel-bg: rgba(255, 255, 255, 0.07); /* Brighter card background */
-    --panel-border: rgba(255, 255, 255, 0.15); /* Brighter border */
+    --panel-bg: rgba(255, 255, 255, 0.07);
+    --panel-border: rgba(255, 255, 255, 0.15);
     --text-main: #F1F5F9;
-    --text-muted: #B0BCC9; /* Brighter text for readability */
+    --text-muted: #B0BCC9;
     --accent-cyan: #00E5FF;
     --accent-magenta: #FF007F;
     --accent-yellow: #FFCC00;
@@ -306,7 +306,7 @@ img {
 
 /* Connect With Me Card */
 .connect-card {
-    grid-column: 1 / -1; /* Span full width */
+    grid-column: 1 / -1;
     width: 100%;
 }
 .connect-desc {
@@ -383,7 +383,6 @@ img {
     height: 100%; 
     object-fit: cover; 
     transition: transform 0.5s ease; 
-    /* BRIGHTEN DARK IMAGES */
     filter: brightness(1.3) contrast(1.1); 
 }
 .mission-card:hover .mission-img img { transform: scale(1.08); filter: brightness(1.5) contrast(1.1); }
@@ -429,7 +428,6 @@ img {
     filter: brightness(0.6); 
 }
 
-/* Caption Overlay */
 .vault-caption {
     position: absolute;
     bottom: 0;
@@ -450,7 +448,6 @@ img {
     transform: translateY(0);
 }
 
-/* Magnify Icon Overlay */
 .vault-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
@@ -586,7 +583,6 @@ img {
     
     .code-snippet { font-size: 1rem; }
     
-    /* Stack social links on mobile */
     .social-links {
         grid-template-columns: 1fr;
         gap: 12px;
@@ -595,7 +591,6 @@ img {
         padding: 16px 20px;
     }
     
-    /* Adjust gallery grid for mobile */
     .vault-grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 12px;
