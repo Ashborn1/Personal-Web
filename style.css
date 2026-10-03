@@ -393,16 +393,104 @@ img {
 .mission-info p { color: var(--text-muted); font-size: 0.95rem; flex: 1; margin-bottom: 20px; }
 
 /* --- PAGE 4: Gallery --- */
-.vault-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-.vault-item { position: relative; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; cursor: pointer; border: 1px solid var(--panel-border); }
-.vault-item img { width: 100%; height: 100%; object-fit: cover; transition: var(--transition); }
-.vault-item:hover img { transform: scale(1.1); filter: brightness(0.6); }
+.vault-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 20px; 
+}
+.vault-item { 
+    position: relative; 
+    aspect-ratio: 1/1; 
+    border-radius: 20px; 
+    overflow: hidden; 
+    cursor: pointer; 
+    border: 1px solid var(--panel-border);
+    background: #0d1117; /* Dark background for transparent images */
+}
+.vault-item img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    display: block;
+    transition: var(--transition); 
+}
+.vault-item:hover img { 
+    transform: scale(1.1); 
+    filter: brightness(0.6); 
+}
+
+/* Caption Overlay */
+.vault-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(5, 8, 15, 0.85);
+    backdrop-filter: blur(4px);
+    color: var(--text-main);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-align: center;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 2;
+}
+.vault-item:hover .vault-caption {
+    transform: translateY(0);
+}
+
+/* Magnify Icon Overlay */
 .vault-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
     color: #fff; font-size: 1.5rem; opacity: 0; transition: var(--transition);
+    pointer-events: none;
+    z-index: 3;
 }
 .vault-item:hover .vault-overlay { opacity: 1; transform: scale(1.1); }
+
+/* --- Lightbox Modal --- */
+.lightbox {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.lightbox.active {
+    display: flex;
+    opacity: 1;
+}
+.lightbox-img {
+    max-width: 92%;
+    max-height: 92%;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.4), 0 0 100px rgba(0, 0, 0, 0.8);
+    transform: scale(0.85);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.lightbox.active .lightbox-img {
+    transform: scale(1);
+}
+.lightbox-close {
+    position: absolute;
+    top: 20px; right: 30px;
+    color: #fff;
+    font-size: 2.5rem;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    transition: color 0.3s;
+    line-height: 1;
+}
+.lightbox-close:hover { color: var(--accent-cyan); }
 
 /* --- PAGE 5: Contact --- */
 .comm-panel { max-width: 800px; margin: 0 auto; padding: 0; overflow: hidden; }
@@ -495,6 +583,21 @@ img {
     }
     .social-link {
         padding: 16px 20px;
+    }
+    
+    /* Adjust gallery grid for mobile */
+    .vault-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+    .vault-caption {
+        font-size: 0.65rem;
+        padding: 6px;
+    }
+    .lightbox-close {
+        top: 15px;
+        right: 20px;
+        font-size: 2rem;
     }
 }
 
