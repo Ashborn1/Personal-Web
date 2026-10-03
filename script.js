@@ -186,11 +186,15 @@ function initDogPet() {
     const shadow = buildShadow();
     scene.add(shadow);
 
-    // --- Tunables ---
-    const MAX_SPEED = 1.2;
-    const ACCEL_LAMBDA = 3.0;
-    const DECEL_LAMBDA = 6.0;
-    const BLEND = 6;
+    // ============================================================
+    // TUNABLES — faster and snappier across the board
+    // ============================================================
+    const MAX_SPEED     = 1.6;   // walk speed (was 1.2)
+    const ACCEL_LAMBDA  = 4.5;   // accelerate faster (was 3.0)
+    const DECEL_LAMBDA  = 8.0;   // stop faster (was 6.0)
+    const BLEND         = 10;    // pose transition speed (was 6)
+    const WALK_FREQ     = 14;    // leg swing frequency (was 11)
+    const ROT_LERP      = 9;     // turn-to-face speed (was 7)
 
     // --- Runtime ---
     let posX = 0;
@@ -217,7 +221,7 @@ function initDogPet() {
         const dist = camera.position.z;
         const visibleH = 2 * Math.tan(vFov / 2) * dist;
         const visibleW = visibleH * camera.aspect;
-        boundsX = Math.max(2.5, visibleW / 2 - 1.6);
+        boundsX = Math.max(2.5, visibleW / 2 - 1.9);
     }
     recalcBounds();
 
@@ -230,9 +234,7 @@ function initDogPet() {
         if (state === newState) return;
         state = newState;
         switch (newState) {
-            case 'idle':
-                stateTimer = 1.4 + Math.random() * 2.0;
-                break;
+            case 'idle':  stateTimer = 0.9 + Math.random() * 1.2; break;   // shorter idle
             case 'walk': {
                 const currentSide = posX >= 0 ? 1 : -1;
                 const wantOpposite = Math.random() < 0.8;
@@ -241,10 +243,10 @@ function initDogPet() {
                 stateTimer = 12;
                 break;
             }
-            case 'sit':  stateTimer = 3.0 + Math.random() * 2.5; break;
-            case 'lay':  stateTimer = 3.5 + Math.random() * 3.0; break;
-            case 'bark': stateTimer = 0.9; break;
-            case 'pet':  stateTimer = 2.0; break;
+            case 'sit':   stateTimer = 1.8 + Math.random() * 1.2; break;   // was 3+2.5
+            case 'lay':   stateTimer = 2.2 + Math.random() * 1.5; break;   // was 3.5+3
+            case 'bark':  stateTimer = 0.55; break;                        // was 0.9
+            case 'pet':   stateTimer = 1.6; break;                         // was 2.0
         }
     }
 
@@ -265,7 +267,7 @@ function initDogPet() {
         const dt = Math.min(clock.getDelta(), 0.05);
         const t = clock.elapsedTime;
 
-        // ===== STATE =====
+        // ===== STATE MACHINE =====
         if (state === 'walk') {
             const dx = targetX - posX;
             const dist = Math.abs(dx);
@@ -297,30 +299,30 @@ function initDogPet() {
         posX += velX * dt;
         posX = Math.max(-boundsX, Math.min(boundsX, posX));
 
-        // ===== BLENDS =====
-        sitBlend  = damp(sitBlend,  state === 'sit'  ? 1 : 0, BLEND,       dt);
-        layBlend  = damp(layBlend,  state === 'lay'  ? 1 : 0, BLEND,       dt);
-        barkBlend = damp(barkBlend, state === 'bark' ? 1 : 0, BLEND * 1.5, dt);
-        petBlend  = damp(petBlend,  state === 'pet'  ? 1 : 0, BLEND * 1.5, dt);
+        // ===== POSE BLENDS =====
+        sitBlend  = damp(sitBlend,  state === 'sit'  ? 1 : 0, BLEND,        dt);
+        layBlend  = damp(layBlend,  state === 'lay'  ? 1 : 0, BLEND,        dt);
+        barkBlend = damp(barkBlend, state === 'bark' ? 1 : 0, BLEND * 1.8,  dt);
+        petBlend  = damp(petBlend,  state === 'pet'  ? 1 : 0, BLEND * 1.8,  dt);
 
-        // ===== ROTATION (face camera when petting) =====
+        // ===== FACING =====
         let desiredRotY;
         if (petBlend > 0.3) {
-            desiredRotY = 0; // look at viewer
+            desiredRotY = 0; // look at the user
         } else {
             desiredRotY = facing > 0 ? Math.PI / 2 : -Math.PI / 2;
         }
         let diff = desiredRotY - rotY;
         while (diff >  Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        rotY += diff * Math.min(1, dt * 6);
+        rotY += diff * Math.min(1, dt * ROT_LERP);
 
         dog.group.rotation.y = rotY;
         dog.group.position.x = posX;
 
-        // ===== WALK PHASE =====
+        // ===== WALK PHASE (faster) =====
         const walking = state === 'walk' && Math.abs(velX) > 0.08;
-        if (walking) walkPhase += dt * 11 * (Math.abs(velX) / MAX_SPEED);
+        if (walking) walkPhase += dt * WALK_FREQ * (Math.abs(velX) / MAX_SPEED);
 
         // ===== LEGS =====
         dog.legs.forEach(leg => {
@@ -329,77 +331,72 @@ function initDogPet() {
             let target = 0;
 
             if (walking) {
-                target = Math.sin(walkPhase + phase) * 0.55;
+                target = Math.sin(walkPhase + phase) * 0.6;
             } else {
-                // Combine pose blends
-                const sitTarget = isFront ? 0 : 1.3;
+                const sitTarget = isFront ? 0 : 1.35;
                 const layTarget = isFront ? -0.55 : 1.15;
-                const petTarget = isFront ? -1.1 : 0; // front paws raised when petted
-
+                const petTarget = isFront ? -1.2 : 0; // front paws up (beg/handstand)
                 target = sitBlend * sitTarget
                        + layBlend * layTarget
                        + petBlend * petTarget;
             }
-
-            leg.rotation.x = damp(leg.rotation.x, target, 10, dt);
+            leg.rotation.x = damp(leg.rotation.x, target, 14, dt);
         });
 
-        // ===== BODY =====
+        // ===== BODY BOB / HOP =====
         let bob = walking
-            ? Math.abs(Math.sin(walkPhase)) * 0.06
+            ? Math.abs(Math.sin(walkPhase)) * 0.07
             : Math.sin(t * 1.6) * 0.015;
 
-        // Pet hop
         if (state === 'pet') {
             if (!hopActive) { hopActive = true; hopPhase = 0; }
-            hopPhase += dt * 9;
+            hopPhase += dt * 13; // faster hop (was 9)
             const fade = Math.max(0, 1 - hopPhase / Math.PI);
-            bob += Math.abs(Math.sin(hopPhase)) * 0.18 * fade;
+            bob += Math.abs(Math.sin(hopPhase)) * 0.22 * fade;
         } else {
             hopActive = false;
         }
 
-        // Body tilt for sit / lay / pet (leaning back while begging)
         const bodyTilt =
             sitBlend * 0.15 +
             layBlend * 0.05 -
-            petBlend * 0.22; // lean back a bit when petted (beg pose)
-        dog.body.rotation.x = damp(dog.body.rotation.x, bodyTilt, 8, dt);
+            petBlend * 0.22;
+        dog.body.rotation.x = damp(dog.body.rotation.x, bodyTilt, 12, dt);
 
         const yOffset = -layBlend * 0.32;
         dog.group.position.y = bob + yOffset;
 
         // ===== HEAD =====
         let headRotX = walking
-            ? Math.sin(walkPhase * 2) * 0.05
+            ? Math.sin(walkPhase * 2) * 0.06
             : Math.sin(t * 1.4) * 0.03;
 
         headRotX -= sitBlend * 0.15;
         headRotX += layBlend * 0.5;
-        if (state === 'bark') headRotX -= Math.abs(Math.sin(t * 18)) * 0.25 * barkBlend;
-        headRotX -= petBlend * 0.35; // look up at the user when petted
+        if (state === 'bark') headRotX -= Math.abs(Math.sin(t * 24)) * 0.28 * barkBlend; // faster bark
+        headRotX -= petBlend * 0.35;
 
-        dog.head.rotation.x = damp(dog.head.rotation.x, headRotX, 10, dt);
+        dog.head.rotation.x = damp(dog.head.rotation.x, headRotX, 14, dt);
 
         let headRotY = 0;
-        if (state === 'bark') headRotY = Math.sin(t * 18) * 0.08 * barkBlend;
-        if (petBlend > 0.05)  headRotY = Math.sin(t * 2.2) * 0.12 * petBlend; // happy sway
-        dog.head.rotation.y = damp(dog.head.rotation.y, headRotY, 8, dt);
+        if (state === 'bark') headRotY = Math.sin(t * 24) * 0.09 * barkBlend;
+        if (petBlend > 0.05)  headRotY = Math.sin(t * 2.4) * 0.12 * petBlend;
+        dog.head.rotation.y = damp(dog.head.rotation.y, headRotY, 12, dt);
 
-        // ===== TAIL WAG =====
-        let wagSpeed = 3, wagAmp = 0.10;
-        if (walking)           { wagSpeed = 11; wagAmp = 0.35; }
-        if (state === 'bark')  { wagSpeed = 16; wagAmp = 0.50; }
-        if (state === 'pet')   { wagSpeed = 22; wagAmp = 0.70; }
-        if (sitBlend > 0.5)    { wagSpeed = 3;  wagAmp = 0.15; }
-        if (layBlend > 0.5)    { wagSpeed = 2;  wagAmp = 0.10; }
+        // ===== TAIL =====
+        let wagSpeed = 3.5, wagAmp = 0.10;
+        if (walking)           { wagSpeed = 14; wagAmp = 0.4; }
+        if (state === 'bark')  { wagSpeed = 20; wagAmp = 0.55; }
+        if (state === 'pet')   { wagSpeed = 26; wagAmp = 0.75; }
+        if (sitBlend > 0.5)    { wagSpeed = 4;  wagAmp = 0.15; }
+        if (layBlend > 0.5)    { wagSpeed = 2.5; wagAmp = 0.10; }
 
         dog.tail.rotation.y = Math.sin(t * wagSpeed) * wagAmp;
 
         // ===== TONGUE =====
         const tongueOut = Math.max(barkBlend, petBlend * 0.7);
         dog.tongue.scale.set(1, 1, 0.3 + tongueOut * 0.9);
-        dog.tongue.position.z = 0.55 + tongueOut * 0.08;
+        dog.tongue.position.z = 0.52 + tongueOut * 0.08;
 
         // ===== SHADOW =====
         shadow.position.x = posX;
@@ -423,7 +420,7 @@ function initDogPet() {
         };
     }
 
-    const HIT_RADIUS = 90;
+    const HIT_RADIUS = 100;
 
     document.addEventListener('click', (e) => {
         if (e.target.closest('.bottom-nav, .lightbox, .modern-btn, a, button, input, textarea')) return;
@@ -449,7 +446,13 @@ function initDogPet() {
 
 
 /* ================================================================
-   BUILD DOG — all parts now overlap correctly
+   BUILD DOG — longer body, all parts overlapping correctly
+   ================================================================
+   Local axis conventions:
+     X = side-to-side (width)
+     Y = up / down (height)
+     Z = front-to-back (length)
+     +Z = forward (head), -Z = backward (tail)
    ================================================================ */
 function buildDog() {
     const group = new THREE.Group();
@@ -461,101 +464,102 @@ function buildDog() {
     const nose  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
     const pink  = new THREE.MeshStandardMaterial({ color: 0xFF8FA3, roughness: 0.7 });
 
-    // --- TORSO ---
-    // Spans: x[-0.775, 0.775], y[0.51, 1.29], z[-0.425, 0.425]
-    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.78, 0.85), brown);
+    // --- TORSO (longer now) ---
+    // Width 0.85, height 0.7, length 1.9
+    // X: [-0.425, 0.425]  Y: [0.55, 1.25]  Z: [-0.95, 0.95]
+    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.7, 1.9), brown);
     bodyMesh.position.y = 0.9;
     body.add(bodyMesh);
 
-    const belly = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 0.72), cream);
-    belly.position.set(0, 0.55, 0);
+    const belly = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.12, 1.72), cream);
+    belly.position.set(0, 0.58, 0);
     body.add(belly);
 
     // --- HEAD (overlaps body front) ---
-    // head at (0, 1.25, 0.6); skull 0.75^3 spans z[0.225, 0.975] — overlaps body front (z=0.425)
+    // Head origin at z=0.95 → skull Z spans [0.59, 1.31], body front at 0.95 → overlap ✓
     const head = new THREE.Group();
-    head.position.set(0, 1.25, 0.6);
+    head.position.set(0, 1.22, 0.95);
     body.add(head);
 
-    const skull = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), brown);
+    const skull = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.72, 0.72), brown);
     head.add(skull);
 
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.35, 0.4), cream);
-    snout.position.set(0, -0.12, 0.53);
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.32, 0.38), cream);
+    snout.position.set(0, -0.12, 0.5);
     head.add(snout);
 
-    const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 0.12), nose);
-    noseMesh.position.set(0, -0.04, 0.75);
+    const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.13, 0.11), nose);
+    noseMesh.position.set(0, -0.04, 0.71);
     head.add(noseMesh);
 
     // Eyes
-    const eyeGeo = new THREE.BoxGeometry(0.13, 0.13, 0.06);
+    const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.06);
     const eyeL = new THREE.Mesh(eyeGeo, nose);
-    eyeL.position.set(-0.21, 0.14, 0.385);
+    eyeL.position.set(-0.2, 0.12, 0.36);
     head.add(eyeL);
     const eyeR = new THREE.Mesh(eyeGeo, nose);
-    eyeR.position.set(0.21, 0.14, 0.385);
+    eyeR.position.set(0.2, 0.12, 0.36);
     head.add(eyeR);
 
     // Eye shine
-    const shineGeo = new THREE.BoxGeometry(0.045, 0.045, 0.02);
+    const shineGeo = new THREE.BoxGeometry(0.042, 0.042, 0.02);
     const shineMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.4 });
     const sL = new THREE.Mesh(shineGeo, shineMat);
-    sL.position.set(-0.18, 0.18, 0.42);
+    sL.position.set(-0.17, 0.16, 0.4);
     head.add(sL);
     const sR = new THREE.Mesh(shineGeo, shineMat);
-    sR.position.set(0.24, 0.18, 0.42);
+    sR.position.set(0.23, 0.16, 0.4);
     head.add(sR);
 
     // Ears
-    const earGeo = new THREE.BoxGeometry(0.22, 0.42, 0.14);
+    const earGeo = new THREE.BoxGeometry(0.2, 0.4, 0.13);
     const earL = new THREE.Mesh(earGeo, brown);
-    earL.position.set(-0.33, 0.47, -0.02);
+    earL.position.set(-0.32, 0.45, -0.05);
     earL.rotation.z = -0.2;
     head.add(earL);
     const earR = new THREE.Mesh(earGeo, brown);
-    earR.position.set(0.33, 0.47, -0.02);
+    earR.position.set(0.32, 0.45, -0.05);
     earR.rotation.z = 0.2;
     head.add(earR);
 
     // Tongue
-    const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.05), pink);
-    tongue.position.set(0, -0.25, 0.55);
+    const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.05), pink);
+    tongue.position.set(0, -0.23, 0.52);
     tongue.scale.set(1, 1, 0.3);
     head.add(tongue);
 
-    // --- TAIL (thick tapered boxes going back + up) ---
-    // Base at back of body (z = -0.42)
+    // --- TAIL (attached at back of body) ---
+    // Body rear is z=-0.95 → tail base at z=-0.9 sits inside body
     const tail = new THREE.Group();
-    tail.position.set(0, 1.1, -0.42);
+    tail.position.set(0, 1.05, -0.9);
     body.add(tail);
 
     const tailInner = new THREE.Group();
-    tailInner.rotation.x = 0.45; // angle up-and-back so it doesn't look like a stick
+    tailInner.rotation.x = 0.5; // angle up-and-back
     tail.add(tailInner);
 
-    const tailSeg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.3), brown);
-    tailSeg1.position.set(0, 0, -0.15);
+    const tailSeg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.32), brown);
+    tailSeg1.position.set(0, 0, -0.16);
     tailInner.add(tailSeg1);
 
-    const tailSeg2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.28), brown);
-    tailSeg2.position.set(0, 0.03, -0.42);
+    const tailSeg2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.3), brown);
+    tailSeg2.position.set(0, 0.03, -0.46);
     tailInner.add(tailSeg2);
 
-    const tailTip = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.22), cream);
-    tailTip.position.set(0, 0.07, -0.66);
+    const tailTip = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.24), cream);
+    tailTip.position.set(0, 0.07, -0.72);
     tailInner.add(tailTip);
 
-    // --- LEGS (pivots inside body volume) ---
-    // Body z range: [-0.425, 0.425]. Legs at z = ±0.28 stay inside.
-    // Body x range: [-0.775, 0.775]. Legs at x = ±0.5 stay inside.
-    // Body y range: [0.51, 1.29]. Pivot at y = 0.6 is inside.
+    // --- LEGS (pivots inside body) ---
+    // Body Z range: [-0.95, 0.95] → front legs at z=+0.62, hind at z=-0.62
+    // Body X range: [-0.425, 0.425] → legs at x=±0.32 stay inside
+    // Body Y bottom: 0.55 → pivot at y=0.6 sits at the shoulder line
     const legs = [];
     const legLayout = [
-        { x: -0.5, z:  0.28, phase: 0,       isFront: true  },
-        { x:  0.5, z:  0.28, phase: Math.PI, isFront: true  },
-        { x: -0.5, z: -0.28, phase: Math.PI, isFront: false },
-        { x:  0.5, z: -0.28, phase: 0,       isFront: false },
+        { x: -0.32, z:  0.62, phase: 0,       isFront: true  },
+        { x:  0.32, z:  0.62, phase: Math.PI, isFront: true  },
+        { x: -0.32, z: -0.62, phase: Math.PI, isFront: false },
+        { x:  0.32, z: -0.62, phase: 0,       isFront: false },
     ];
     legLayout.forEach(cfg => {
         const pivot = new THREE.Group();
@@ -563,11 +567,11 @@ function buildDog() {
         pivot.userData.phase = cfg.phase;
         pivot.userData.isFront = cfg.isFront;
 
-        const legMesh = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.55, 0.24), brown);
+        const legMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.55, 0.2), brown);
         legMesh.position.y = -0.275;
         pivot.add(legMesh);
 
-        const paw = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.32), cream);
+        const paw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.28), cream);
         paw.position.set(0, -0.58, 0.03);
         pivot.add(paw);
 
@@ -598,7 +602,7 @@ function buildShadow() {
     const mat = new THREE.MeshBasicMaterial({
         map: tex, transparent: true, depthWrite: false, opacity: 0.55,
     });
-    const geo = new THREE.PlaneGeometry(2.4, 1.4);
+    const geo = new THREE.PlaneGeometry(3.0, 1.4);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.y = 0.01;
