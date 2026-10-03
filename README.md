@@ -61,5 +61,3 @@ I am a second-year Computer Science student with a strong passion for programmin
 | **Game Development** | Basic Game Development (Concepts & Prototyping) |
 
 ---
-
-## 🗂️ Project Structure
