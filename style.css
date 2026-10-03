@@ -1,60 +1,81 @@
 /* --- Connect With Me Card (About Page) --- */
+.specs-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
 .connect-card {
-    grid-column: 1 / -1; /* Spans full width across both columns */
+    grid-column: 1 / -1 !important; /* Force full-width span */
+    width: 100%;
 }
 
 .connect-card h3 {
     font-size: 1.4rem;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     color: var(--text-main);
 }
 
 .connect-desc {
     color: var(--text-muted);
-    margin-bottom: 25px;
+    margin-bottom: 30px;
     line-height: 1.6;
-    max-width: 700px;
+    max-width: 800px;
 }
 
 .social-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
 }
 
 .social-link {
-    display: inline-flex;
+    display: flex !important;
     align-items: center;
+    justify-content: center;
     gap: 12px;
-    padding: 14px 24px;
+    padding: 18px 24px;
     border-radius: 14px;
-    text-decoration: none;
+    text-decoration: none !important;
     font-family: var(--font-heading);
     font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text-main);
+    font-size: 1rem;
+    color: var(--text-main) !important;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--panel-border);
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .social-link i {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Shine sweep effect on hover */
+.social-link span {
+    display: inline-block;
+}
+
+/* Shine sweep effect */
 .social-link::after {
     content: '';
     position: absolute;
-    top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
     transition: all 0.5s ease;
     transform: skewX(-20deg);
+    pointer-events: none;
 }
-.social-link:hover::after { left: 150%; }
+
+.social-link:hover::after {
+    left: 150%;
+}
 
 .social-link:hover {
     transform: translateY(-4px);
@@ -68,15 +89,15 @@
 .social-link.facebook:hover {
     background: rgba(24, 119, 242, 0.15);
     border-color: #1877F2;
-    color: #1877F2;
+    color: #1877F2 !important;
     box-shadow: 0 8px 20px rgba(24, 119, 242, 0.3);
 }
 
 /* GitHub hover */
 .social-link.github:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.1);
     border-color: #FFFFFF;
-    color: #FFFFFF;
+    color: #FFFFFF !important;
     box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15);
 }
 
@@ -84,17 +105,17 @@
 .social-link.email:hover {
     background: rgba(255, 0, 127, 0.15);
     border-color: var(--accent-magenta);
-    color: var(--accent-magenta);
+    color: var(--accent-magenta) !important;
     box-shadow: 0 8px 20px rgba(255, 0, 127, 0.3);
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .social-links {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
     .social-link {
-        width: 100%;
-        justify-content: center;
+        padding: 16px 20px;
     }
 }
