@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeNav && activeSection) {
             activeNav.classList.add('active');
             activeSection.classList.add('active');
-            
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
@@ -29,38 +28,66 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 2. Contact Form Handling ---
+    // --- 2. Contact Form Handling (Vercel Serverless Function) ---
     const contactForm = document.getElementById('contactForm');
-    
+
     if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
+        contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const submitBtn = contactForm.querySelector('button[type="submit"]');
             if (!submitBtn) return;
-            
+
             const originalText = submitBtn.innerHTML;
-            
+
+            // Gather form data using the name attributes
+            const formData = {
+                name: contactForm.querySelector('[name="name"]').value.trim(),
+                email: contactForm.querySelector('[name="email"]').value.trim(),
+                subject: contactForm.querySelector('[name="subject"]').value.trim(),
+                message: contactForm.querySelector('[name="message"]').value.trim()
+            };
+
+            // Show loading state
             submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> SENDING...';
             submitBtn.style.opacity = '0.7';
             submitBtn.disabled = true;
 
-            setTimeout(() => {
-                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> MESSAGE SENT';
-                submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
-                submitBtn.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
-                
-                contactForm.reset();
+            try {
+                // Send data to the Vercel serverless function
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
 
-                setTimeout(() => {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.style.background = '';
-                    submitBtn.style.boxShadow = '';
-                    submitBtn.style.opacity = '1';
-                    submitBtn.disabled = false;
-                }, 3000);
-                
-            }, 2000); 
+                if (response.ok) {
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> MESSAGE SENT';
+                    submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                    submitBtn.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
+                    contactForm.reset();
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Server error:', errorData);
+                    submitBtn.innerHTML = '<i class="fas fa-times-circle"></i> ERROR';
+                    submitBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    submitBtn.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.4)';
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                submitBtn.innerHTML = '<i class="fas fa-times-circle"></i> ERROR';
+                submitBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                submitBtn.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.4)';
+            }
+
+            // Revert button after 3 seconds
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.style.background = '';
+                submitBtn.style.boxShadow = '';
+                submitBtn.style.opacity = '1';
+                submitBtn.disabled = false;
+            }, 3000);
         });
     }
 
@@ -72,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         homeSection.addEventListener('mousemove', (e) => {
             const x = (window.innerWidth / 2 - e.pageX) / 40;
             const y = (window.innerHeight / 2 - e.pageY) / 40;
-            
             heroCard.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg)`;
         });
         
@@ -89,12 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 4. Hover Effect on Gallery Items ---
     const vaultItems = document.querySelectorAll('.vault-item');
     vaultItems.forEach(item => {
-        item.addEventListener('mouseenter', () => {
-            item.style.zIndex = '10';
-        });
-        item.addEventListener('mouseleave', () => {
-            item.style.zIndex = '1';
-        });
+        item.addEventListener('mouseenter', () => { item.style.zIndex = '10'; });
+        item.addEventListener('mouseleave', () => { item.style.zIndex = '1'; });
     });
 
     // --- 5. Lightbox (Image Peek/Enlarge) ---
@@ -106,20 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lightbox && lightboxImg && lightboxClose && galleryImages.length > 0) {
         galleryImages.forEach(img => {
             img.addEventListener('click', () => {
-                // Use the larger version if available, otherwise the same source
                 lightboxImg.src = img.src;
                 lightbox.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                document.body.style.overflow = 'hidden';
             });
         });
 
-        // Close on X button
         lightboxClose.addEventListener('click', () => {
             lightbox.classList.remove('active');
-            document.body.style.overflow = ''; // Restore scrolling
+            document.body.style.overflow = '';
         });
 
-        // Close on clicking outside the image
         lightbox.addEventListener('click', (e) => {
             if (e.target === lightbox) {
                 lightbox.classList.remove('active');
@@ -127,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Close on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && lightbox.classList.contains('active')) {
                 lightbox.classList.remove('active');
@@ -135,5 +153,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
 });
