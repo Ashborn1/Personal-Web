@@ -205,7 +205,6 @@
             </header>
 
             <div class="vault-grid">
-                <!-- Zenith-Hub / Sell Lemons -->
                 <div class="vault-item">
                     <img src="assets/sell1.jpg" alt="Zenith Hub - Main Script UI" draggable="false">
                     <div class="vault-caption">Zenith Hub - Main UI</div>
@@ -216,8 +215,6 @@
                     <div class="vault-caption">Zenith Hub - Player Settings</div>
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
-                
-                <!-- Cookie Empire -->
                 <div class="vault-item">
                     <img src="assets/cookie1.png" alt="Cookie Empire - Interface" draggable="false">
                     <div class="vault-caption">Cookie Empire - Interface</div>
@@ -233,8 +230,6 @@
                     <div class="vault-caption">Cookie Empire - Skill Tree</div>
                     <div class="vault-overlay"><i class="fas fa-search-plus"></i></div>
                 </div>
-
-                <!-- Pili-KArt -->
                 <div class="vault-item">
                     <img src="assets/pili1.png" alt="Pili-KArt - Login & Menu" draggable="false">
                     <div class="vault-caption">Pili-KArt - Login & Menu</div>
@@ -274,20 +269,20 @@
                     <div class="input-row">
                         <div class="input-group">
                             <label>Name</label>
-                            <input type="text" placeholder="Enter your name..." required>
+                            <input type="text" name="name" placeholder="Enter your name..." required>
                         </div>
                         <div class="input-group">
                             <label>Email Address</label>
-                            <input type="email" placeholder="Where should I send the reply?" required>
+                            <input type="email" name="email" placeholder="Where should I send the reply?" required>
                         </div>
                     </div>
                     <div class="input-group">
                         <label>Subject</label>
-                        <input type="text" placeholder="e.g. Collaboration, Freelance Work, Inquiry">
+                        <input type="text" name="subject" placeholder="e.g. Collaboration, Freelance Work, Inquiry">
                     </div>
                     <div class="input-group">
                         <label>Message</label>
-                        <textarea rows="5" placeholder="Tell me about your project or inquiry..." required></textarea>
+                        <textarea name="message" rows="5" placeholder="Tell me about your project or inquiry..." required></textarea>
                     </div>
                     <button type="submit" class="modern-btn primary full-width">Send Message</button>
                 </form>
