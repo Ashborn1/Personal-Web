@@ -148,12 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const PET_TYPE_KEY = 'petType';
     const PET_PRESET_PREFIX = 'petPreset_';
 
-    // ============================================================
-    // COLOR THEME PRESETS
-    //   primary   → body / fur
-    //   secondary → belly / snout / paws / tail tip
-    //   tertiary  → tongue / nose / inner ear / gill tips
-    // ============================================================
     const COLOR_PRESETS = [
         { name: 'Original',    primary: null,      secondary: null,      tertiary: null      },
         { name: 'Shiba',       primary: '#D4A574', secondary: '#F5E6D3', tertiary: '#5A3A20' },
@@ -184,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPet = null;
     let currentPetType = localStorage.getItem(PET_TYPE_KEY) || 'dog';
 
-    // ----- Build the popup -----
     function buildColorPopup() {
         if (!petColorPopup) return;
         petColorPopup.innerHTML = '';
@@ -231,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     buildColorPopup();
 
-    // Sync picker UI
     if (petPicker) {
         petPicker.querySelectorAll('.pet-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.pet === currentPetType);
@@ -291,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Popup toggle
     if (petColorBtn && petColorPopup) {
         petColorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -313,11 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ================================================================
    PRESET APPLIER
-   Each material entry has:
-     mat          – the THREE material
-     role         – 'primary' | 'secondary' | 'tertiary'
-     shade        – small HSL lightness offset to add depth
-     originalHex  – the default color to restore on 'Original'
    ================================================================ */
 function applyPreset(materialList, preset) {
     if (!preset || preset.primary === null) {
@@ -414,6 +400,12 @@ function initPet(type, preset) {
     let layBlend = 0;
     let actionBlend = 0;
     let petBlend = 0;
+    let specialBlend = 0;
+    let specialTime = 0;
+
+    // Spin offset — computed from progress so it always ends at a full rotation
+    let spinOffset = 0;
+    const DOG_SPIN_TURNS = 8;   // number of full spins in one special
 
     let hopPhase = 0;
     let hopActive = false;
@@ -433,6 +425,12 @@ function initPet(type, preset) {
     function lerp(a, b, t) { return a + (b - a) * t; }
     function damp(current, target, lambda, dt) {
         return lerp(current, target, 1 - Math.exp(-lambda * dt));
+    }
+    function dampAngle(current, target, lambda, dt) {
+        let d = target - current;
+        while (d >  Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        return current + d * (1 - Math.exp(-lambda * dt));
     }
 
     function setState(newState) {
@@ -459,6 +457,13 @@ function initPet(type, preset) {
                 else                           stateTimer = 1.8;
                 break;
             }
+            case 'special': {
+                if (type === 'dog')            stateTimer = 10.0;
+                else if (type === 'cat')       stateTimer = 4.5;
+                else                           stateTimer = 5.5;
+                specialTime = 0;
+                break;
+            }
             case 'pet':    stateTimer = 1.8; break;
             case 'idle':   stateTimer = 0.4; break;
         }
@@ -466,10 +471,11 @@ function initPet(type, preset) {
 
     function pickNextState() {
         const r = Math.random();
-        if (r < 0.45)      setState('walk');
-        else if (r < 0.65) setState('sit');
-        else if (r < 0.85) setState('lay');
-        else               setState('action');
+        if (r < 0.32)      setState('walk');
+        else if (r < 0.48) setState('sit');
+        else if (r < 0.64) setState('lay');
+        else if (r < 0.80) setState('action');
+        else               setState('special');
     }
 
     const clock = new THREE.Clock();
@@ -510,14 +516,17 @@ function initPet(type, preset) {
             }
         }
 
+        if (state === 'special') specialTime += dt;
+
         posX += velX * dt;
         posX = Math.max(-boundsX, Math.min(boundsX, posX));
 
         // ===== POSE BLENDS =====
-        sitBlend    = damp(sitBlend,    state === 'sit'    ? 1 : 0, BLEND,        dt);
-        layBlend    = damp(layBlend,    state === 'lay'    ? 1 : 0, BLEND,        dt);
-        actionBlend = damp(actionBlend, state === 'action' ? 1 : 0, BLEND * 2.0,  dt);
-        petBlend    = damp(petBlend,    state === 'pet'    ? 1 : 0, BLEND * 1.8,  dt);
+        sitBlend     = damp(sitBlend,     state === 'sit'     ? 1 : 0, BLEND,        dt);
+        layBlend     = damp(layBlend,     state === 'lay'     ? 1 : 0, BLEND,        dt);
+        actionBlend  = damp(actionBlend,  state === 'action'  ? 1 : 0, BLEND * 2.0,  dt);
+        petBlend     = damp(petBlend,     state === 'pet'     ? 1 : 0, BLEND * 1.8,  dt);
+        specialBlend = damp(specialBlend, state === 'special' ? 1 : 0, BLEND * 1.5,  dt);
 
         // ===== FACING =====
         const faceUserBlend = Math.max(petBlend, actionBlend);
@@ -525,13 +534,28 @@ function initPet(type, preset) {
         if (faceUserBlend > 0.25) desiredRotY = 0;
         else                      desiredRotY = facing > 0 ? Math.PI / 2 : -Math.PI / 2;
 
-        let diff = desiredRotY - rotY;
-        while (diff >  Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
         const rotSpeed = actionBlend > 0.3 ? ROT_LERP * 1.6 : ROT_LERP;
-        rotY += diff * Math.min(1, dt * rotSpeed);
+        rotY = dampAngle(rotY, desiredRotY, rotSpeed, dt);
 
-        pet.group.rotation.y = rotY;
+        // ===== DOG TAIL-CHASE SPIN (safe version) =====
+        // Compute spin from a closed-form formula that goes 0 → N * 2π over the
+        // special duration, so it always ends exactly on a full rotation.
+        if (type === 'dog' && state === 'special') {
+            const p = Math.min(1, specialTime / stateTimer);
+            // ∫ sin(pπ) with proper scaling → π * N * (1 - cos(pπ))
+            //   p=0  → 0
+            //   p=1  → 2πN   (visually identical to 0)
+            spinOffset = Math.PI * DOG_SPIN_TURNS * (1 - Math.cos(p * Math.PI));
+        } else {
+            // Not spinning: smoothly return spinOffset to the nearest full rotation
+            // (invisible correction, prevents any sideways walking afterwards)
+            const twoPi = Math.PI * 2;
+            const nearest = Math.round(spinOffset / twoPi) * twoPi;
+            spinOffset = damp(spinOffset, nearest, 6, dt);
+            if (Math.abs(spinOffset - nearest) < 0.0005) spinOffset = nearest;
+        }
+
+        pet.group.rotation.y = rotY + spinOffset;
         pet.group.position.x = posX;
 
         // ===== WALK PHASE =====
@@ -548,7 +572,7 @@ function initPet(type, preset) {
         let speciesBobExtra = 0;
         let catBlink = 0;
 
-        if (!walking && state !== 'action') {
+        if (!walking && state !== 'action' && state !== 'special') {
             if (type === 'dog') {
                 const phase = (t % 5) / 5;
                 if (phase > 0.7) {
@@ -571,6 +595,20 @@ function initPet(type, preset) {
             }
         }
 
+        // ============================================================
+        // CAT STRETCH
+        // ============================================================
+        let catStretchFront = 0;
+        let catStretchHind = 0;
+        if (type === 'cat' && state === 'special') {
+            const p = Math.min(1, specialTime / stateTimer);
+            const eased = p < 0.15 ? p / 0.15
+                       : p > 0.85 ? (1 - p) / 0.15
+                       : 1;
+            catStretchFront = eased;
+            catStretchHind = eased;
+        }
+
         // ===== LEGS =====
         pet.legs.forEach(leg => {
             const phase = leg.userData.phase;
@@ -579,6 +617,8 @@ function initPet(type, preset) {
 
             if (walking) {
                 target = Math.sin(walkPhase + phase) * 0.6;
+            } else if (type === 'dog' && state === 'special') {
+                target = Math.sin(t * 14 + phase) * 0.45;
             } else {
                 const sitTarget = isFront ? 0 : 1.35;
                 const layTarget = isFront ? -0.55 : 1.15;
@@ -586,6 +626,11 @@ function initPet(type, preset) {
                 target = sitBlend * sitTarget
                        + layBlend * layTarget
                        + petBlend * petTarget;
+            }
+
+            if (type === 'cat' && catStretchFront > 0.01) {
+                if (isFront) target += -0.9 * catStretchFront;
+                else         target += 0.85 * catStretchHind;
             }
 
             if (type === 'cat' && speciesFrontRightLift > 0.01 && isFront && leg.position.x > 0) {
@@ -602,6 +647,16 @@ function initPet(type, preset) {
         if (type === 'cat')      pulseSpeed = 10;
         if (type === 'axolotl')  pulseSpeed = 6;
         const actionPulse = Math.abs(Math.sin(t * pulseSpeed)) * actionBlend;
+
+        // ============================================================
+        // SPECIAL PULSE
+        // ============================================================
+        let specialPulse = 0;
+        if (state === 'special') {
+            if (type === 'dog')            specialPulse = Math.abs(Math.sin(t * 12)) * specialBlend;
+            else if (type === 'cat')       specialPulse = Math.abs(Math.sin(t * 4))  * specialBlend;
+            else                           specialPulse = Math.abs(Math.sin(t * 3))  * specialBlend;
+        }
 
         // ===== BODY BOB =====
         let bob = walking
@@ -623,6 +678,17 @@ function initPet(type, preset) {
         if (type === 'dog') bob += actionPulse * 0.045;
         if (type === 'cat') bob += actionPulse * 0.02;
 
+        if (type === 'axolotl' && state === 'special') {
+            bob += 0.1 * specialBlend + Math.sin(t * 3) * 0.03 * specialBlend;
+        }
+        if (type === 'dog' && state === 'special') {
+            bob += Math.abs(Math.sin(t * 12)) * 0.08 * specialBlend;
+        }
+        if (type === 'cat' && state === 'special') {
+            bob -= 0.08 * catStretchFront;
+        }
+
+        // ===== BODY TILT =====
         let bodyTilt =
             sitBlend * 0.15 +
             layBlend * 0.05 -
@@ -630,6 +696,11 @@ function initPet(type, preset) {
 
         if (type === 'dog') bodyTilt -= actionPulse * 0.08;
         if (type === 'cat') bodyTilt -= actionBlend * 0.10;
+        if (type === 'cat') bodyTilt += 0.4 * catStretchFront;
+        if (type === 'axolotl' && state === 'special') {
+            bodyTilt += Math.sin(t * 2.5) * 0.08 * specialBlend;
+        }
+
         pet.body.rotation.x = damp(pet.body.rotation.x, bodyTilt, 14, dt);
 
         const yOffset = -layBlend * 0.32;
@@ -655,6 +726,16 @@ function initPet(type, preset) {
         if (type === 'cat')      headRotX -= actionBlend * 0.35;
         if (type === 'axolotl')  headRotX -= Math.sin(t * 8) * 0.08 * actionBlend;
 
+        if (type === 'dog' && state === 'special') {
+            headRotX += 0.3 * specialBlend;
+        }
+        if (type === 'cat') {
+            headRotX += 0.5 * catStretchFront;
+        }
+        if (type === 'axolotl' && state === 'special') {
+            headRotX += Math.sin(t * 2.2) * 0.18 * specialBlend;
+        }
+
         pet.head.rotation.x = damp(pet.head.rotation.x, headRotX, 18, dt);
 
         let headRotY = 0;
@@ -663,6 +744,10 @@ function initPet(type, preset) {
         if (type === 'axolotl' && state === 'action')  headRotY = Math.sin(t * 4) * 0.05 * actionBlend;
         if (petBlend > 0.05)  headRotY = Math.sin(t * 2.4) * 0.12 * petBlend;
         headRotY += speciesHeadTiltY;
+
+        if (type === 'dog' && state === 'special') {
+            headRotY += Math.sin(t * 14) * 0.35 * specialBlend;
+        }
 
         pet.head.rotation.y = damp(pet.head.rotation.y, headRotY, 14, dt);
         pet.head.rotation.z = damp(pet.head.rotation.z, speciesHeadTiltZ, 12, dt);
@@ -679,18 +764,20 @@ function initPet(type, preset) {
         if (type === 'axolotl' && pet.allGills) {
             const wiggle = Math.sin(t * 3.5) * 0.1;
             const fanOut = actionBlend * 0.22 + petBlend * 0.2;
+            const specialFan = (state === 'special') ? 0.4 * specialBlend : 0;
             pet.allGills.forEach(g => {
                 const s = g.userData.side;
                 const base = g.userData.baseRotY ?? 0;
-                g.rotation.y = base + s * (wiggle + fanOut);
+                g.rotation.y = base + s * (wiggle + fanOut + specialFan);
             });
         } else if (pet.earL && pet.earR) {
             const baseZL = pet.earL.userData.baseEarZ ?? -0.2;
             const baseZR = pet.earR.userData.baseEarZ ?? 0.2;
 
             if (type === 'dog') {
-                pet.earL.rotation.z = baseZL - actionPulse * 0.35;
-                pet.earR.rotation.z = baseZR + actionPulse * 0.35;
+                const spinFlap = (state === 'special') ? Math.sin(t * 14) * 0.35 * specialBlend : 0;
+                pet.earL.rotation.z = baseZL - actionPulse * 0.35 + spinFlap;
+                pet.earR.rotation.z = baseZR + actionPulse * 0.35 - spinFlap;
             } else if (type === 'cat') {
                 pet.earL.rotation.z = baseZL;
                 pet.earR.rotation.z = baseZR;
@@ -701,7 +788,8 @@ function initPet(type, preset) {
         }
 
         if (type === 'axolotl') {
-            const puff = 1 + actionPulse * 0.06;
+            const specialPuff = (state === 'special') ? specialBlend * 0.1 : 0;
+            const puff = 1 + actionPulse * 0.06 + specialPuff;
             pet.body.scale.set(puff, puff, puff);
         } else {
             pet.body.scale.set(1, 1, 1);
@@ -721,15 +809,24 @@ function initPet(type, preset) {
             wagAmp = 0.28;
         }
 
+        if (type === 'dog' && state === 'special') {
+            wagSpeed = 30;
+            wagAmp = 0.8;
+        }
+
         pet.tail.rotation.y = Math.sin(t * wagSpeed) * wagAmp;
 
         if (type === 'cat') {
-            const targetTailX = actionBlend * -0.9;
+            let targetTailX = actionBlend * -0.9;
+            if (state === 'special') targetTailX = -1.4 * catStretchFront;
             pet.tail.rotation.x = damp(pet.tail.rotation.x ?? 0, targetTailX, 8, dt);
         }
 
         // ===== TONGUE =====
         let tongueOut = Math.max(actionBlend * (type === 'dog' ? 1.0 : 0.6), petBlend * 0.7);
+        if (type === 'dog' && state === 'special') tongueOut = Math.max(tongueOut, 0.9 * specialBlend);
+        if (type === 'cat' && state === 'special') tongueOut = Math.max(tongueOut, 0.3 * catStretchFront);
+
         const tongueBaseZ = type === 'cat' ? 0.44 : (type === 'axolotl' ? 0.64 : 0.52);
         pet.tongue.scale.set(1, 1, 0.3 + tongueOut * 1.1);
         pet.tongue.position.z = tongueBaseZ + tongueOut * 0.1;
@@ -1099,12 +1196,12 @@ function buildAxolotl() {
     const pinkMouth = new THREE.MeshStandardMaterial({ color: 0xD14A7E, roughness: 0.6 });
 
     const materialList = [
-        { mat: pinkLight, role: 'primary',   shade:  0.00, originalHex: 0xFFB8D1 }, // body
-        { mat: pinkMid,   role: 'primary',   shade: -0.06, originalHex: 0xFF9BC0 }, // gill stalks
-        { mat: pinkDark,  role: 'tertiary',  shade:  0.06, originalHex: 0xFF6FA8 }, // gill tip cores
-        { mat: pinkDeep,  role: 'tertiary',  shade: -0.10, originalHex: 0xE85B94 }, // frills
-        { mat: cream,     role: 'secondary', shade:  0.00, originalHex: 0xFFE5EE }, // belly
-        { mat: pinkMouth, role: 'tertiary',  shade: -0.22, originalHex: 0xD14A7E }, // mouth/tongue
+        { mat: pinkLight, role: 'primary',   shade:  0.00, originalHex: 0xFFB8D1 },
+        { mat: pinkMid,   role: 'primary',   shade: -0.06, originalHex: 0xFF9BC0 },
+        { mat: pinkDark,  role: 'tertiary',  shade:  0.06, originalHex: 0xFF6FA8 },
+        { mat: pinkDeep,  role: 'tertiary',  shade: -0.10, originalHex: 0xE85B94 },
+        { mat: cream,     role: 'secondary', shade:  0.00, originalHex: 0xFFE5EE },
+        { mat: pinkMouth, role: 'tertiary',  shade: -0.22, originalHex: 0xD14A7E },
     ];
     function setPreset(preset) {
         applyPreset(materialList, preset);
