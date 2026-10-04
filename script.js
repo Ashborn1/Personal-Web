@@ -138,17 +138,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 6. 3D Walking Dog (Three.js) ---
-    initDogPet();
+    // --- 6. Pet Toggle + Pet ---
+    const petToggle = document.getElementById('petToggle');
+    const PET_STORAGE_KEY = 'petEnabled';
+    let currentPet = null;
+
+    function enablePet() {
+        if (currentPet) return;
+        currentPet = initDogPet();
+        if (petToggle) petToggle.classList.add('active');
+    }
+
+    function disablePet() {
+        if (!currentPet) return;
+        currentPet.destroy();
+        currentPet = null;
+        if (petToggle) petToggle.classList.remove('active');
+    }
+
+    // Restore saved preference (default = OFF on first visit)
+    const saved = localStorage.getItem(PET_STORAGE_KEY);
+    if (saved === 'true') {
+        enablePet();
+    }
+
+    if (petToggle) {
+        petToggle.addEventListener('click', () => {
+            if (currentPet) {
+                disablePet();
+                localStorage.setItem(PET_STORAGE_KEY, 'false');
+            } else {
+                enablePet();
+                localStorage.setItem(PET_STORAGE_KEY, 'true');
+            }
+        });
+    }
 });
 
 
 /* ================================================================
-   3D DOG PET
+   3D DOG PET  —  returns { destroy() } for cleanup
    ================================================================ */
 function initDogPet() {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Skip if reduced motion — return a no-op handle so toggle still works
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return { destroy() {} };
+    }
 
+    let alive = true;
+    let rafId = null;
+
+    // --- Canvas overlay ---
     const CANVAS_H = 200;
     const canvas = document.createElement('canvas');
     Object.assign(canvas.style, {
@@ -230,16 +270,12 @@ function initDogPet() {
         return lerp(current, target, 1 - Math.exp(-lambda * dt));
     }
 
-    // ============================================================
-    // STATE PICKER — random, walk has highest weight
-    // ============================================================
     function setState(newState) {
         if (state === newState) return;
         state = newState;
 
         switch (newState) {
             case 'walk': {
-                // Pick a RANDOM spot anywhere, just not too close to where we are
                 let newTarget = 0;
                 let tries = 0;
                 do {
@@ -252,7 +288,7 @@ function initDogPet() {
             }
             case 'sit':   stateTimer = 2.6 + Math.random() * 1.2; break;
             case 'lay':   stateTimer = 3.2 + Math.random() * 1.2; break;
-            case 'bark':  stateTimer = 1.8; break;   // longer + more visible
+            case 'bark':  stateTimer = 1.8; break;
             case 'pet':   stateTimer = 1.8; break;
             case 'idle':  stateTimer = 0.4; break;
         }
@@ -260,17 +296,18 @@ function initDogPet() {
 
     function pickNextState() {
         const r = Math.random();
-        if (r < 0.45)      setState('walk');   // 45%
-        else if (r < 0.65) setState('sit');    // 20%
-        else if (r < 0.85) setState('lay');    // 20%
-        else               setState('bark');   // 15%
+        if (r < 0.45)      setState('walk');
+        else if (r < 0.65) setState('sit');
+        else if (r < 0.85) setState('lay');
+        else               setState('bark');
     }
 
     const clock = new THREE.Clock();
     const tmpVec = new THREE.Vector3();
 
     function animate() {
-        requestAnimationFrame(animate);
+        if (!alive) return;
+        rafId = requestAnimationFrame(animate);
         const dt = Math.min(clock.getDelta(), 0.05);
         const t = clock.elapsedTime;
 
@@ -309,21 +346,20 @@ function initDogPet() {
         // ===== POSE BLENDS =====
         sitBlend  = damp(sitBlend,  state === 'sit'  ? 1 : 0, BLEND,        dt);
         layBlend  = damp(layBlend,  state === 'lay'  ? 1 : 0, BLEND,        dt);
-        barkBlend = damp(barkBlend, state === 'bark' ? 1 : 0, BLEND * 2.0,  dt); // snappier
+        barkBlend = damp(barkBlend, state === 'bark' ? 1 : 0, BLEND * 2.0,  dt);
         petBlend  = damp(petBlend,  state === 'pet'  ? 1 : 0, BLEND * 1.8,  dt);
 
-        // ===== FACING (face camera during bark AND pet) =====
+        // ===== FACING =====
         const faceUserBlend = Math.max(petBlend, barkBlend);
         let desiredRotY;
         if (faceUserBlend > 0.25) {
-            desiredRotY = 0; // face the user
+            desiredRotY = 0;
         } else {
             desiredRotY = facing > 0 ? Math.PI / 2 : -Math.PI / 2;
         }
         let diff = desiredRotY - rotY;
         while (diff >  Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        // Turn faster when barking so the dog snaps to face you
         const rotSpeed = barkBlend > 0.3 ? ROT_LERP * 1.6 : ROT_LERP;
         rotY += diff * Math.min(1, dt * rotSpeed);
 
@@ -354,7 +390,6 @@ function initDogPet() {
         });
 
         // ===== BODY BOB / HOP / BARK RECOIL =====
-        // Fast bark pulse (about 4 per second during the bark)
         const barkPulse = Math.abs(Math.sin(t * 22)) * barkBlend;
 
         let bob = walking
@@ -370,20 +405,19 @@ function initDogPet() {
             hopActive = false;
         }
 
-        // Body recoil from barking — small vertical shove each bark
         bob += barkPulse * 0.045;
 
         const bodyTilt =
             sitBlend * 0.15 +
             layBlend * 0.05 -
             petBlend * 0.22 -
-            barkPulse * 0.08; // lean back on each bark
+            barkPulse * 0.08;
         dog.body.rotation.x = damp(dog.body.rotation.x, bodyTilt, 14, dt);
 
         const yOffset = -layBlend * 0.32;
         dog.group.position.y = bob + yOffset;
 
-        // ===== HEAD (dramatic bark throw) =====
+        // ===== HEAD =====
         let headRotX = walking
             ? Math.sin(walkPhase * 2) * 0.06
             : Math.sin(t * 1.4) * 0.03;
@@ -391,8 +425,6 @@ function initDogPet() {
         headRotX -= sitBlend * 0.15;
         headRotX += layBlend * 0.5;
         headRotX -= petBlend * 0.35;
-
-        // Bark: head throws UP on each pulse (like a real bark)
         headRotX -= barkPulse * 0.55;
 
         dog.head.rotation.x = damp(dog.head.rotation.x, headRotX, 18, dt);
@@ -402,7 +434,7 @@ function initDogPet() {
         if (petBlend > 0.05)  headRotY = Math.sin(t * 2.4) * 0.12 * petBlend;
         dog.head.rotation.y = damp(dog.head.rotation.y, headRotY, 14, dt);
 
-        // ===== EARS (flap on bark) =====
+        // ===== EARS =====
         if (dog.earL) dog.earL.rotation.z = -0.2 - barkPulse * 0.35;
         if (dog.earR) dog.earR.rotation.z =  0.2 + barkPulse * 0.35;
 
@@ -416,7 +448,7 @@ function initDogPet() {
 
         dog.tail.rotation.y = Math.sin(t * wagSpeed) * wagAmp;
 
-        // ===== TONGUE (extends fully during bark) =====
+        // ===== TONGUE =====
         const tongueOut = Math.max(barkBlend, petBlend * 0.7);
         dog.tongue.scale.set(1, 1, 0.3 + tongueOut * 1.1);
         dog.tongue.position.z = 0.52 + tongueOut * 0.1;
@@ -445,18 +477,19 @@ function initDogPet() {
 
     const HIT_RADIUS = 100;
 
-    document.addEventListener('click', (e) => {
+    function onClick(e) {
         if (e.target.closest('.bottom-nav, .lightbox, .modern-btn, a, button, input, textarea')) return;
         const p = getDogScreenPos();
         if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < HIT_RADIUS) setState('pet');
-    });
+    }
 
-    document.addEventListener('mousemove', (e) => {
+    function onMove(e) {
         const p = getDogScreenPos();
         document.body.style.cursor = Math.hypot(e.clientX - p.x, e.clientY - p.y) < HIT_RADIUS ? 'pointer' : '';
-    });
+    }
 
-    window.addEventListener('resize', () => {
+    function onResize() {
+        if (!alive) return;
         const w = window.innerWidth;
         renderer.setSize(w, CANVAS_H);
         camera.aspect = w / CANVAS_H;
@@ -464,7 +497,25 @@ function initDogPet() {
         recalcBounds();
         posX = Math.max(-boundsX, Math.min(boundsX, posX));
         targetX = Math.max(-boundsX, Math.min(boundsX, targetX));
-    });
+    }
+
+    document.addEventListener('click', onClick);
+    document.addEventListener('mousemove', onMove);
+    window.addEventListener('resize', onResize);
+
+    // ===== CLEANUP HANDLE =====
+    return {
+        destroy() {
+            alive = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            document.removeEventListener('click', onClick);
+            document.removeEventListener('mousemove', onMove);
+            window.removeEventListener('resize', onResize);
+            document.body.style.cursor = '';
+            if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+            renderer.dispose();
+        }
+    };
 }
 
 
@@ -481,7 +532,6 @@ function buildDog() {
     const nose  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
     const pink  = new THREE.MeshStandardMaterial({ color: 0xFF8FA3, roughness: 0.7 });
 
-    // --- TORSO ---
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.7, 1.9), brown);
     bodyMesh.position.y = 0.9;
     body.add(bodyMesh);
@@ -490,7 +540,6 @@ function buildDog() {
     belly.position.set(0, 0.58, 0);
     body.add(belly);
 
-    // --- HEAD ---
     const head = new THREE.Group();
     head.position.set(0, 1.22, 0.95);
     body.add(head);
@@ -523,7 +572,6 @@ function buildDog() {
     sR.position.set(0.23, 0.16, 0.4);
     head.add(sR);
 
-    // Ears (returned so we can flap them during bark)
     const earGeo = new THREE.BoxGeometry(0.2, 0.4, 0.13);
     const earL = new THREE.Mesh(earGeo, brown);
     earL.position.set(-0.32, 0.45, -0.05);
@@ -539,7 +587,6 @@ function buildDog() {
     tongue.scale.set(1, 1, 0.3);
     head.add(tongue);
 
-    // --- TAIL ---
     const tail = new THREE.Group();
     tail.position.set(0, 1.05, -0.9);
     body.add(tail);
@@ -560,7 +607,6 @@ function buildDog() {
     tailTip.position.set(0, 0.07, -0.72);
     tailInner.add(tailTip);
 
-    // --- LEGS ---
     const legs = [];
     const legLayout = [
         { x: -0.32, z:  0.62, phase: 0,       isFront: true  },
