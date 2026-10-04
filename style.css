@@ -612,11 +612,58 @@ img {
     .nav-item { padding: 12px; }
 }
 
-/* --- Pet Toggle Button --- */
-.pet-toggle {
+
+/* --- Pet Controls (Picker + Toggle) --- */
+.pet-controls {
     position: fixed;
     top: 20px;
     right: 20px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 1001;
+}
+
+.pet-picker {
+    display: flex;
+    gap: 2px;
+    background: rgba(5, 8, 15, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    padding: 4px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.pet-option {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pet-option:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pet-option.active {
+    color: var(--accent-cyan);
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+
+.pet-toggle {
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -631,7 +678,6 @@ img {
     align-items: center;
     justify-content: center;
     transition: var(--transition);
-    z-index: 1001;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     -webkit-tap-highlight-color: transparent;
 }
@@ -655,11 +701,19 @@ img {
 }
 
 @media (max-width: 768px) {
-    .pet-toggle {
+    .pet-controls {
         top: 15px;
         right: 15px;
+        gap: 6px;
+    }
+    .pet-toggle {
         width: 42px;
         height: 42px;
         font-size: 0.95rem;
+    }
+    .pet-option {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
     }
 }

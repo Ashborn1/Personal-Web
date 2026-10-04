@@ -327,11 +327,20 @@
         </a>
     </nav>
 
-    <script type="module" src="script.js"></script>
-        <!-- Pet Toggle Button -->
-    <button id="petToggle" class="pet-toggle" aria-label="Toggle pet" title="Toggle pet">
-        <i class="fas fa-paw"></i>
-    </button>
+        <!-- Pet Controls -->
+    <div class="pet-controls">
+        <div class="pet-picker" id="petPicker">
+            <button class="pet-option active" data-pet="dog" title="Dog">
+                <i class="fas fa-dog"></i>
+            </button>
+            <button class="pet-option" data-pet="cat" title="Cat">
+                <i class="fas fa-cat"></i>
+            </button>
+        </div>
+        <button id="petToggle" class="pet-toggle" aria-label="Toggle pet" title="Toggle pet">
+            <i class="fas fa-paw"></i>
+        </button>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>
