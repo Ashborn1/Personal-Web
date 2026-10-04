@@ -141,12 +141,98 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 6. Pet Controls ---
     const petToggle = document.getElementById('petToggle');
     const petPicker = document.getElementById('petPicker');
+    const petColorBtn = document.getElementById('petColorBtn');
+    const petColorPopup = document.getElementById('petColorPopup');
+
     const PET_ENABLED_KEY = 'petEnabled';
     const PET_TYPE_KEY = 'petType';
+    const PET_COLOR_PREFIX = 'petColor_';
+
+    const PET_DEFAULT_COLORS = {
+        dog:     '#B8835A',
+        cat:     '#E8A05A',
+        axolotl: '#FFB8D1',
+    };
+
+    // Preset palette (null = species default)
+    const COLOR_PRESETS = [
+        { name: 'Original',   hex: null },
+        { name: 'Snow',       hex: '#E8EDF2' },
+        { name: 'Cream',      hex: '#F5DEB3' },
+        { name: 'Bubblegum',  hex: '#FF8FB1' },
+        { name: 'Cherry',     hex: '#E63946' },
+        { name: 'Tangerine',  hex: '#F4A261' },
+        { name: 'Lemon',      hex: '#FFD23F' },
+        { name: 'Mint',       hex: '#80ED99' },
+        { name: 'Sky',        hex: '#5DADE2' },
+        { name: 'Lavender',   hex: '#B497D6' },
+        { name: 'Shadow',     hex: '#2C2C34' },
+        { name: 'Midnight',   hex: '#1A1A24' },
+    ];
+
+    function getStoredColor(type) {
+        return localStorage.getItem(PET_COLOR_PREFIX + type) || PET_DEFAULT_COLORS[type];
+    }
 
     let currentPet = null;
     let currentPetType = localStorage.getItem(PET_TYPE_KEY) || 'dog';
 
+    // ----- Build the color popup -----
+    function buildColorPopup() {
+        if (!petColorPopup) return;
+        petColorPopup.innerHTML = '';
+        COLOR_PRESETS.forEach(preset => {
+            const swatch = document.createElement('button');
+            swatch.className = 'pet-color-swatch' + (preset.hex === null ? ' original' : '');
+            if (preset.hex !== null) {
+                swatch.style.background = preset.hex;
+            }
+            swatch.dataset.hex = preset.hex || '';
+            swatch.dataset.name = preset.name;
+            swatch.title = preset.name;
+            swatch.addEventListener('click', (e) => {
+                e.stopPropagation();
+                applyPreset(preset);
+            });
+            petColorPopup.appendChild(swatch);
+        });
+        refreshSwatchSelection();
+    }
+
+    function refreshSwatchSelection() {
+        if (!petColorPopup) return;
+        const currentColor = getStoredColor(currentPetType).toUpperCase();
+        const isDefault = currentColor === PET_DEFAULT_COLORS[currentPetType].toUpperCase();
+        petColorPopup.querySelectorAll('.pet-color-swatch').forEach(s => {
+            const hex = s.dataset.hex;
+            if (!hex && isDefault) {
+                s.classList.add('active');
+            } else if (hex && hex.toUpperCase() === currentColor) {
+                s.classList.add('active');
+            } else {
+                s.classList.remove('active');
+            }
+        });
+    }
+
+    function applyPreset(preset) {
+        if (preset.hex === null) {
+            localStorage.removeItem(PET_COLOR_PREFIX + currentPetType);
+            if (currentPet && currentPet.setColor) {
+                currentPet.setColor(PET_DEFAULT_COLORS[currentPetType]);
+            }
+        } else {
+            localStorage.setItem(PET_COLOR_PREFIX + currentPetType, preset.hex);
+            if (currentPet && currentPet.setColor) {
+                currentPet.setColor(preset.hex);
+            }
+        }
+        refreshSwatchSelection();
+    }
+
+    buildColorPopup();
+
+    // Sync picker UI
     if (petPicker) {
         petPicker.querySelectorAll('.pet-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.pet === currentPetType);
@@ -155,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function enablePet() {
         if (currentPet) return;
-        currentPet = initPet(currentPetType);
+        currentPet = initPet(currentPetType, getStoredColor(currentPetType));
         if (petToggle) petToggle.classList.add('active');
     }
 
@@ -194,22 +280,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 petPicker.querySelectorAll('.pet-option').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
+                refreshSwatchSelection();
+
                 if (currentPet) {
                     currentPet.destroy();
-                    currentPet = initPet(currentPetType);
+                    currentPet = initPet(currentPetType, getStoredColor(currentPetType));
                 }
             });
+        });
+    }
+
+    // ----- Color popup toggle -----
+    if (petColorBtn && petColorPopup) {
+        petColorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = petColorPopup.classList.toggle('open');
+            petColorBtn.classList.toggle('open', isOpen);
+        });
+
+        // Click outside closes
+        document.addEventListener('click', (e) => {
+            if (petColorPopup.classList.contains('open') &&
+                !petColorPopup.contains(e.target) &&
+                e.target !== petColorBtn) {
+                petColorPopup.classList.remove('open');
+                petColorBtn.classList.remove('open');
+            }
         });
     }
 });
 
 
 /* ================================================================
+   SHARED COLOR TINT HELPER
+   ================================================================ */
+function applyTint(materialList, hexColor, defaultHex) {
+    const isDefault = !hexColor || hexColor.toUpperCase() === defaultHex.toUpperCase();
+    if (isDefault) {
+        materialList.forEach(({ mat, originalHex }) => {
+            mat.color.setHex(originalHex);
+        });
+        return;
+    }
+    const c = new THREE.Color(hexColor);
+    const hsl = { h: 0, s: 0, l: 0 };
+    c.getHSL(hsl);
+    materialList.forEach(({ mat, lightOffset, satMult }) => {
+        const s = Math.max(0, Math.min(1, hsl.s * (satMult ?? 1)));
+        const l = Math.max(0.05, Math.min(0.95, hsl.l + (lightOffset ?? 0)));
+        mat.color.setHSL(hsl.h, s, l);
+    });
+}
+
+
+/* ================================================================
    PET FACTORY
    ================================================================ */
-function initPet(type) {
+function initPet(type, color) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return { destroy() {} };
+        return { destroy() {}, setColor() {} };
     }
 
     let alive = true;
@@ -250,6 +379,8 @@ function initPet(type) {
     if (type === 'cat')           pet = buildCat();
     else if (type === 'axolotl')  pet = buildAxolotl();
     else                          pet = buildDog();
+
+    if (color && pet.setColor) pet.setColor(color);
 
     scene.add(pet.group);
 
@@ -540,7 +671,6 @@ function initPet(type) {
         // EARS / GILLS
         // ============================================================
         if (type === 'axolotl' && pet.allGills) {
-            // Wiggle + fan (each gill rotates around its own base rotation)
             const wiggle = Math.sin(t * 3.5) * 0.1;
             const fanOut = actionBlend * 0.22 + petBlend * 0.2;
             pet.allGills.forEach(g => {
@@ -564,7 +694,6 @@ function initPet(type) {
             }
         }
 
-        // Body puff for axolotl
         if (type === 'axolotl') {
             const puff = 1 + actionPulse * 0.06;
             pet.body.scale.set(puff, puff, puff);
@@ -656,6 +785,9 @@ function initPet(type) {
     window.addEventListener('resize', onResize);
 
     return {
+        setColor(hexColor) {
+            if (pet.setColor) pet.setColor(hexColor);
+        },
         destroy() {
             alive = false;
             if (rafId) cancelAnimationFrame(rafId);
@@ -682,6 +814,15 @@ function buildDog() {
     const cream = new THREE.MeshStandardMaterial({ color: 0xF0DCC0, roughness: 0.9 });
     const nose  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
     const pink  = new THREE.MeshStandardMaterial({ color: 0xFF8FA3, roughness: 0.7 });
+
+    const materialList = [
+        { mat: brown, lightOffset:  0.00, satMult: 1.00, originalHex: 0xB8835A },
+        { mat: cream, lightOffset:  0.28, satMult: 0.35, originalHex: 0xF0DCC0 },
+        { mat: pink,  lightOffset:  0.15, satMult: 1.10, originalHex: 0xFF8FA3 },
+    ];
+    function setColor(hexColor) {
+        applyTint(materialList, hexColor, '#B8835A');
+    }
 
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.7, 1.9), brown);
     bodyMesh.position.y = 0.9;
@@ -785,7 +926,7 @@ function buildDog() {
         legs.push(pivot);
     });
 
-    return { group, body, head, tail, legs, tongue, earL, earR };
+    return { group, body, head, tail, legs, tongue, earL, earR, setColor };
 }
 
 
@@ -801,6 +942,15 @@ function buildCat() {
     const cream  = new THREE.MeshStandardMaterial({ color: 0xF5E0C3, roughness: 0.9 });
     const dark   = new THREE.MeshStandardMaterial({ color: 0x1A1005, roughness: 0.35 });
     const pink   = new THREE.MeshStandardMaterial({ color: 0xFF9EB5, roughness: 0.7 });
+
+    const materialList = [
+        { mat: orange, lightOffset:  0.00, satMult: 1.00, originalHex: 0xE8A05A },
+        { mat: cream,  lightOffset:  0.28, satMult: 0.30, originalHex: 0xF5E0C3 },
+        { mat: pink,   lightOffset:  0.15, satMult: 1.10, originalHex: 0xFF9EB5 },
+    ];
+    function setColor(hexColor) {
+        applyTint(materialList, hexColor, '#E8A05A');
+    }
 
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.55), orange);
     bodyMesh.position.y = 0.75;
@@ -922,12 +1072,12 @@ function buildCat() {
         legs.push(pivot);
     });
 
-    return { group, body, head, tail, legs, tongue, earL, earR, shineL, shineR };
+    return { group, body, head, tail, legs, tongue, earL, earR, shineL, shineR, setColor };
 }
 
 
 /* ================================================================
-   BUILD AXOLOTL — short feathery gills swept backward like the real thing
+   BUILD AXOLOTL
    ================================================================ */
 function buildAxolotl() {
     const group = new THREE.Group();
@@ -942,7 +1092,18 @@ function buildAxolotl() {
     const dark      = new THREE.MeshStandardMaterial({ color: 0x1A0A12, roughness: 0.3 });
     const pinkMouth = new THREE.MeshStandardMaterial({ color: 0xD14A7E, roughness: 0.6 });
 
-    // --- TORSO ---
+    const materialList = [
+        { mat: pinkLight, lightOffset:  0.00, satMult: 1.00, originalHex: 0xFFB8D1 },
+        { mat: pinkMid,   lightOffset: -0.08, satMult: 1.05, originalHex: 0xFF9BC0 },
+        { mat: pinkDark,  lightOffset: -0.16, satMult: 1.10, originalHex: 0xFF6FA8 },
+        { mat: pinkDeep,  lightOffset: -0.24, satMult: 1.15, originalHex: 0xE85B94 },
+        { mat: cream,     lightOffset:  0.20, satMult: 0.30, originalHex: 0xFFE5EE },
+        { mat: pinkMouth, lightOffset: -0.20, satMult: 1.20, originalHex: 0xD14A7E },
+    ];
+    function setColor(hexColor) {
+        applyTint(materialList, hexColor, '#FFB8D1');
+    }
+
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 1.75), pinkLight);
     bodyMesh.position.y = 0.72;
     body.add(bodyMesh);
@@ -955,7 +1116,6 @@ function buildAxolotl() {
     belly.position.set(0, 0.5, 0);
     body.add(belly);
 
-    // --- HEAD ---
     const head = new THREE.Group();
     head.position.set(0, 0.85, 0.9);
     body.add(head);
@@ -971,7 +1131,6 @@ function buildAxolotl() {
     mouth.position.set(0, -0.18, 0.66);
     head.add(mouth);
 
-    // --- EYES ---
     const eyeGeo = new THREE.BoxGeometry(0.11, 0.11, 0.06);
     const eyeL = new THREE.Mesh(eyeGeo, dark);
     eyeL.position.set(-0.32, 0.15, 0.38);
@@ -989,57 +1148,30 @@ function buildAxolotl() {
     sR.position.set(0.35, 0.18, 0.42);
     head.add(sR);
 
-    // ============================================================
-    // GILLS — SHORT + FEATHERY + SWEPT BACK
-    // ============================================================
     const allGills = [];
-
-    /**
-     * @param side       -1 = left, +1 = right
-     * @param yOff       vertical position on head
-     * @param zOff       Z position on head (negative = behind eyes)
-     * @param pitchAngle tilt up (+) or down (-)
-     * @param backAngle  how much to sweep backward (0 = straight out, 0.6 = mostly back)
-     * @param scale      size multiplier
-     */
     function makeGill(side, yOff, zOff, pitchAngle, backAngle, scale = 1) {
-        // Position at the SIDE of the skull, behind the eyes
         const g = new THREE.Group();
         g.position.set(side * 0.48, yOff, zOff);
         head.add(g);
 
-        // Yaw: point outward + backward
         const yaw = side * (Math.PI / 2 + backAngle);
         g.rotation.y = yaw;
-        // Pitch: tilt up or down
         g.rotation.x = -pitchAngle;
 
-        // Store base rotation for animation
         g.userData.side = side;
         g.userData.baseRotY = yaw;
         allGills.push(g);
 
-        // --- SHORT base stalk ---
         const stalkLen = 0.16 * scale;
-        const stalk = new THREE.Mesh(
-            new THREE.BoxGeometry(0.14, 0.14, stalkLen),
-            pinkMid
-        );
+        const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, stalkLen), pinkMid);
         stalk.position.z = stalkLen / 2;
         g.add(stalk);
 
-        // --- Feathery tuft at the tip ---
         const tuftZ = stalkLen + 0.02;
-
-        // Core blob (center of the feathery cluster)
-        const core = new THREE.Mesh(
-            new THREE.BoxGeometry(0.16, 0.16, 0.18),
-            pinkDark
-        );
+        const core = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.18), pinkDark);
         core.position.z = tuftZ + 0.06;
         g.add(core);
 
-        // Frills radiating outward — 8 around the core + 2 pointing forward
         const frillGeo = new THREE.BoxGeometry(0.07, 0.07, 0.18);
         const frillRing = [
             [ 0.14,  0.00, -0.30], [-0.14,  0.00, -0.30],
@@ -1060,7 +1192,6 @@ function buildAxolotl() {
         return g;
     }
 
-    // 3 gills per side — top sweeps up-back, middle straight back, bottom down-back
     makeGill(-1,  0.16, -0.18, 0.35, 0.5, 1.0);
     makeGill(-1,  0.00, -0.22, 0.10, 0.55, 0.95);
     makeGill(-1, -0.15, -0.22, -0.20, 0.5, 0.9);
@@ -1069,13 +1200,11 @@ function buildAxolotl() {
     makeGill(1,  0.00, -0.22, 0.10, 0.55, 0.95);
     makeGill(1, -0.15, -0.22, -0.20, 0.5, 0.9);
 
-    // --- TONGUE ---
     const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.04), pinkMouth);
     tongue.position.set(0, -0.24, 0.64);
     tongue.scale.set(1, 1, 0.3);
     head.add(tongue);
 
-    // --- TAIL ---
     const tail = new THREE.Group();
     tail.position.set(0, 0.72, -0.85);
     body.add(tail);
@@ -1100,7 +1229,6 @@ function buildAxolotl() {
     tailTip.position.set(0, 0, -1.05);
     tailInner.add(tailTip);
 
-    // --- LEGS ---
     const legs = [];
     const legLayout = [
         { x: -0.4, z:  0.55, phase: 0,       isFront: true  },
@@ -1128,7 +1256,7 @@ function buildAxolotl() {
 
     return {
         group, body, head, tail, legs, tongue,
-        allGills,
+        allGills, setColor,
     };
 }
 
