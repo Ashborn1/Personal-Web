@@ -557,64 +557,8 @@ img {
 }
 .nav-item.active i { color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0, 229, 255, 0.8); }
 
-/* --- Responsive Design --- */
-@media (max-width: 1024px) {
-    .hub-layout { grid-template-columns: 1fr; text-align: center; gap: 40px; }
-    .hero-desc { margin: 0 auto 30px; }
-    .action-buttons { justify-content: center; }
-    .specs-layout { grid-template-columns: 1fr; }
-    .input-row { grid-template-columns: 1fr; gap: 0; }
-}
-
-@media (max-width: 768px) {
-    body { padding-bottom: 120px; }
-    .content-area { padding: 40px 20px 20px; }
-    .hero-title { font-size: 2.8rem; }
-    .action-buttons { flex-direction: column; width: 100%; }
-    .modern-btn { width: 100%; justify-content: center; }
-    
-    .bottom-nav {
-        bottom: 15px; padding: 8px 12px; gap: 5px;
-        width: 95%; justify-content: space-around;
-        background: rgba(5, 8, 15, 0.95); 
-    }
-    .nav-item { padding: 8px 12px; font-size: 0.65rem; }
-    .nav-item i { font-size: 1.1rem; }
-    
-    .code-snippet { font-size: 1rem; }
-    
-    .social-links {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .social-link {
-        padding: 16px 20px;
-    }
-    
-    .vault-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-    }
-    .vault-caption {
-        font-size: 0.65rem;
-        padding: 6px;
-    }
-    .lightbox-close {
-        top: 15px;
-        right: 20px;
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .nav-item span { display: none; }
-    .nav-item i { margin-bottom: 0; font-size: 1.4rem; }
-    .nav-item { padding: 12px; }
-}
-
-
 /* =========================================================
-   PET CONTROLS (picker + toggle)  — must be at the end
+   PET CONTROLS (picker + color + toggle)
    ========================================================= */
 .pet-controls {
     position: fixed !important;
@@ -632,6 +576,7 @@ img {
     padding: 0 !important;
 }
 
+/* Pet Picker */
 .pet-picker {
     display: flex !important;
     flex-direction: row !important;
@@ -675,66 +620,7 @@ img {
     box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
 }
 
-.pet-toggle {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    border-radius: 50%;
-    background: rgba(5, 8, 15, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: var(--text-muted);
-    font-size: 1.05rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--transition);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    -webkit-tap-highlight-color: transparent;
-    padding: 0;
-}
-
-.pet-toggle:hover {
-    color: var(--accent-cyan);
-    border-color: var(--accent-cyan);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
-}
-
-.pet-toggle.active {
-    color: var(--accent-cyan);
-    border-color: var(--accent-cyan);
-    background: rgba(0, 229, 255, 0.15);
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
-}
-
-.pet-toggle.active i {
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
-}
-
-@media (max-width: 768px) {
-    .pet-controls {
-        top: 15px !important;
-        right: 15px !important;
-        gap: 6px !important;
-    }
-    .pet-toggle {
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        font-size: 0.95rem;
-    }
-    .pet-option {
-        width: 30px;
-        height: 30px;
-        min-width: 30px;
-        font-size: 0.8rem;
-    }
-}
-
-/* --- Pet Color Palette --- */
+/* Pet Color Palette Button */
 .pet-color-wrap {
     position: relative;
     display: flex;
@@ -775,6 +661,7 @@ img {
     box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
 }
 
+/* Pet Color Popup */
 .pet-color-popup {
     position: absolute;
     top: 56px;
@@ -848,7 +735,112 @@ img {
     font-weight: 700;
 }
 
+/* Pet Toggle */
+.pet-toggle {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
+    background: rgba(5, 8, 15, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+}
+
+.pet-toggle:hover {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
+}
+
+.pet-toggle.active {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+}
+
+.pet-toggle.active i {
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 1024px) {
+    .hub-layout { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+    .hero-desc { margin: 0 auto 30px; }
+    .action-buttons { justify-content: center; }
+    .specs-layout { grid-template-columns: 1fr; }
+    .input-row { grid-template-columns: 1fr; gap: 0; }
+}
+
 @media (max-width: 768px) {
+    body { padding-bottom: 120px; }
+    .content-area { padding: 40px 20px 20px; }
+    .hero-title { font-size: 2.8rem; }
+    .action-buttons { flex-direction: column; width: 100%; }
+    .modern-btn { width: 100%; justify-content: center; }
+    
+    .bottom-nav {
+        bottom: 15px; padding: 8px 12px; gap: 5px;
+        width: 95%; justify-content: space-around;
+        background: rgba(5, 8, 15, 0.95); 
+    }
+    .nav-item { padding: 8px 12px; font-size: 0.65rem; }
+    .nav-item i { font-size: 1.1rem; }
+    
+    .code-snippet { font-size: 1rem; }
+    
+    .social-links {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .social-link {
+        padding: 16px 20px;
+    }
+    
+    .vault-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+    .vault-caption {
+        font-size: 0.65rem;
+        padding: 6px;
+    }
+    .lightbox-close {
+        top: 15px;
+        right: 20px;
+        font-size: 2rem;
+    }
+
+    /* Pet controls on mobile */
+    .pet-controls {
+        top: 15px !important;
+        right: 15px !important;
+        gap: 6px !important;
+    }
+    .pet-toggle {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        font-size: 0.95rem;
+    }
+    .pet-option {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        font-size: 0.8rem;
+    }
     .pet-color-btn {
         width: 42px;
         height: 42px;
@@ -864,4 +856,10 @@ img {
         width: 26px;
         height: 26px;
     }
+}
+
+@media (max-width: 480px) {
+    .nav-item span { display: none; }
+    .nav-item i { margin-bottom: 0; font-size: 1.4rem; }
+    .nav-item { padding: 12px; }
 }
