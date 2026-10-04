@@ -146,50 +146,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const PET_ENABLED_KEY = 'petEnabled';
     const PET_TYPE_KEY = 'petType';
-    const PET_COLOR_PREFIX = 'petColor_';
+    const PET_PRESET_PREFIX = 'petPreset_';
 
-    const PET_DEFAULT_COLORS = {
-        dog:     '#B8835A',
-        cat:     '#E8A05A',
-        axolotl: '#FFB8D1',
-    };
-
-    // Preset palette (null = species default)
+    // ============================================================
+    // COLOR THEME PRESETS
+    //   primary   → body / fur
+    //   secondary → belly / snout / paws / tail tip
+    //   tertiary  → tongue / nose / inner ear / gill tips
+    // ============================================================
     const COLOR_PRESETS = [
-        { name: 'Original',   hex: null },
-        { name: 'Snow',       hex: '#E8EDF2' },
-        { name: 'Cream',      hex: '#F5DEB3' },
-        { name: 'Bubblegum',  hex: '#FF8FB1' },
-        { name: 'Cherry',     hex: '#E63946' },
-        { name: 'Tangerine',  hex: '#F4A261' },
-        { name: 'Lemon',      hex: '#FFD23F' },
-        { name: 'Mint',       hex: '#80ED99' },
-        { name: 'Sky',        hex: '#5DADE2' },
-        { name: 'Lavender',   hex: '#B497D6' },
-        { name: 'Shadow',     hex: '#2C2C34' },
-        { name: 'Midnight',   hex: '#1A1A24' },
+        { name: 'Original',    primary: null,      secondary: null,      tertiary: null      },
+        { name: 'Shiba',       primary: '#D4A574', secondary: '#F5E6D3', tertiary: '#5A3A20' },
+        { name: 'Tuxedo',      primary: '#2C2C34', secondary: '#F5F5F5', tertiary: '#FF9EB5' },
+        { name: 'Panda',       primary: '#F5F5F5', secondary: '#2C2C34', tertiary: '#FF9EB5' },
+        { name: 'Husky',       primary: '#8B9BAE', secondary: '#F0F4F8', tertiary: '#4A6B8A' },
+        { name: 'Tiger',       primary: '#E8A05A', secondary: '#FFF5E0', tertiary: '#2C2C34' },
+        { name: 'Shadow',      primary: '#3A3A4A', secondary: '#6A6A7A', tertiary: '#8A5BA0' },
+        { name: 'Bubblegum',   primary: '#FFB3D9', secondary: '#FFE0F0', tertiary: '#FF3B8F' },
+        { name: 'Mint',        primary: '#9FE2BF', secondary: '#E0FFF0', tertiary: '#3BB87F' },
+        { name: 'Sky',         primary: '#87CEEB', secondary: '#E0F4FF', tertiary: '#3B7FB8' },
+        { name: 'Lavender',    primary: '#C8A2E8', secondary: '#EBE0F5', tertiary: '#8B5FC7' },
+        { name: 'Butter',      primary: '#FFD97D', secondary: '#FFF5D0', tertiary: '#E8A000' },
+        { name: 'Peach',       primary: '#FFB89A', secondary: '#FFE8DC', tertiary: '#E85B5B' },
+        { name: 'Cherry',      primary: '#E63946', secondary: '#FFD0D0', tertiary: '#7A0F1A' },
+        { name: 'Forest',      primary: '#5B8B4A', secondary: '#D4E8C5', tertiary: '#2C5A2A' },
+        { name: 'Midnight',    primary: '#1A1A2E', secondary: '#4A4A6E', tertiary: '#8B5FC7' },
     ];
 
-    function getStoredColor(type) {
-        return localStorage.getItem(PET_COLOR_PREFIX + type) || PET_DEFAULT_COLORS[type];
+    function getPresetByName(name) {
+        return COLOR_PRESETS.find(p => p.name === name) || COLOR_PRESETS[0];
+    }
+
+    function getStoredPresetName(type) {
+        return localStorage.getItem(PET_PRESET_PREFIX + type) || 'Original';
     }
 
     let currentPet = null;
     let currentPetType = localStorage.getItem(PET_TYPE_KEY) || 'dog';
 
-    // ----- Build the color popup -----
+    // ----- Build the popup -----
     function buildColorPopup() {
         if (!petColorPopup) return;
         petColorPopup.innerHTML = '';
         COLOR_PRESETS.forEach(preset => {
             const swatch = document.createElement('button');
-            swatch.className = 'pet-color-swatch' + (preset.hex === null ? ' original' : '');
-            if (preset.hex !== null) {
-                swatch.style.background = preset.hex;
-            }
-            swatch.dataset.hex = preset.hex || '';
-            swatch.dataset.name = preset.name;
+            swatch.className = 'pet-color-swatch';
+            swatch.dataset.presetName = preset.name;
             swatch.title = preset.name;
+
+            if (preset.primary === null) {
+                swatch.classList.add('original');
+            } else {
+                swatch.style.background = `conic-gradient(
+                    ${preset.primary} 0deg 120deg,
+                    ${preset.secondary} 120deg 240deg,
+                    ${preset.tertiary} 240deg 360deg
+                )`;
+            }
+
             swatch.addEventListener('click', (e) => {
                 e.stopPropagation();
                 applyPreset(preset);
@@ -201,31 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshSwatchSelection() {
         if (!petColorPopup) return;
-        const currentColor = getStoredColor(currentPetType).toUpperCase();
-        const isDefault = currentColor === PET_DEFAULT_COLORS[currentPetType].toUpperCase();
+        const currentName = getStoredPresetName(currentPetType);
         petColorPopup.querySelectorAll('.pet-color-swatch').forEach(s => {
-            const hex = s.dataset.hex;
-            if (!hex && isDefault) {
-                s.classList.add('active');
-            } else if (hex && hex.toUpperCase() === currentColor) {
-                s.classList.add('active');
-            } else {
-                s.classList.remove('active');
-            }
+            s.classList.toggle('active', s.dataset.presetName === currentName);
         });
     }
 
     function applyPreset(preset) {
-        if (preset.hex === null) {
-            localStorage.removeItem(PET_COLOR_PREFIX + currentPetType);
-            if (currentPet && currentPet.setColor) {
-                currentPet.setColor(PET_DEFAULT_COLORS[currentPetType]);
-            }
-        } else {
-            localStorage.setItem(PET_COLOR_PREFIX + currentPetType, preset.hex);
-            if (currentPet && currentPet.setColor) {
-                currentPet.setColor(preset.hex);
-            }
+        localStorage.setItem(PET_PRESET_PREFIX + currentPetType, preset.name);
+        if (currentPet && currentPet.setPreset) {
+            currentPet.setPreset(preset);
         }
         refreshSwatchSelection();
     }
@@ -241,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function enablePet() {
         if (currentPet) return;
-        currentPet = initPet(currentPetType, getStoredColor(currentPetType));
+        const preset = getPresetByName(getStoredPresetName(currentPetType));
+        currentPet = initPet(currentPetType, preset);
         if (petToggle) petToggle.classList.add('active');
     }
 
@@ -284,13 +284,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (currentPet) {
                     currentPet.destroy();
-                    currentPet = initPet(currentPetType, getStoredColor(currentPetType));
+                    const preset = getPresetByName(getStoredPresetName(currentPetType));
+                    currentPet = initPet(currentPetType, preset);
                 }
             });
         });
     }
 
-    // ----- Color popup toggle -----
+    // Popup toggle
     if (petColorBtn && petColorPopup) {
         petColorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -298,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
             petColorBtn.classList.toggle('open', isOpen);
         });
 
-        // Click outside closes
         document.addEventListener('click', (e) => {
             if (petColorPopup.classList.contains('open') &&
                 !petColorPopup.contains(e.target) &&
@@ -312,23 +312,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /* ================================================================
-   SHARED COLOR TINT HELPER
+   PRESET APPLIER
+   Each material entry has:
+     mat          – the THREE material
+     role         – 'primary' | 'secondary' | 'tertiary'
+     shade        – small HSL lightness offset to add depth
+     originalHex  – the default color to restore on 'Original'
    ================================================================ */
-function applyTint(materialList, hexColor, defaultHex) {
-    const isDefault = !hexColor || hexColor.toUpperCase() === defaultHex.toUpperCase();
-    if (isDefault) {
+function applyPreset(materialList, preset) {
+    if (!preset || preset.primary === null) {
         materialList.forEach(({ mat, originalHex }) => {
             mat.color.setHex(originalHex);
         });
         return;
     }
-    const c = new THREE.Color(hexColor);
-    const hsl = { h: 0, s: 0, l: 0 };
-    c.getHSL(hsl);
-    materialList.forEach(({ mat, lightOffset, satMult }) => {
-        const s = Math.max(0, Math.min(1, hsl.s * (satMult ?? 1)));
-        const l = Math.max(0.05, Math.min(0.95, hsl.l + (lightOffset ?? 0)));
-        mat.color.setHSL(hsl.h, s, l);
+    materialList.forEach(({ mat, role, shade }) => {
+        const base = preset[role] || preset.primary;
+        const c = new THREE.Color(base);
+        if (shade) {
+            const hsl = { h: 0, s: 0, l: 0 };
+            c.getHSL(hsl);
+            c.setHSL(hsl.h, hsl.s, Math.max(0.05, Math.min(0.95, hsl.l + shade)));
+        }
+        mat.color.copy(c);
     });
 }
 
@@ -336,9 +342,9 @@ function applyTint(materialList, hexColor, defaultHex) {
 /* ================================================================
    PET FACTORY
    ================================================================ */
-function initPet(type, color) {
+function initPet(type, preset) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return { destroy() {}, setColor() {} };
+        return { destroy() {}, setPreset() {} };
     }
 
     let alive = true;
@@ -380,7 +386,7 @@ function initPet(type, color) {
     else if (type === 'axolotl')  pet = buildAxolotl();
     else                          pet = buildDog();
 
-    if (color && pet.setColor) pet.setColor(color);
+    if (preset && pet.setPreset) pet.setPreset(preset);
 
     scene.add(pet.group);
 
@@ -785,8 +791,8 @@ function initPet(type, color) {
     window.addEventListener('resize', onResize);
 
     return {
-        setColor(hexColor) {
-            if (pet.setColor) pet.setColor(hexColor);
+        setPreset(preset) {
+            if (pet.setPreset) pet.setPreset(preset);
         },
         destroy() {
             alive = false;
@@ -816,12 +822,12 @@ function buildDog() {
     const pink  = new THREE.MeshStandardMaterial({ color: 0xFF8FA3, roughness: 0.7 });
 
     const materialList = [
-        { mat: brown, lightOffset:  0.00, satMult: 1.00, originalHex: 0xB8835A },
-        { mat: cream, lightOffset:  0.28, satMult: 0.35, originalHex: 0xF0DCC0 },
-        { mat: pink,  lightOffset:  0.15, satMult: 1.10, originalHex: 0xFF8FA3 },
+        { mat: brown, role: 'primary',   shade:  0.00, originalHex: 0xB8835A },
+        { mat: cream, role: 'secondary', shade:  0.00, originalHex: 0xF0DCC0 },
+        { mat: pink,  role: 'tertiary',  shade:  0.00, originalHex: 0xFF8FA3 },
     ];
-    function setColor(hexColor) {
-        applyTint(materialList, hexColor, '#B8835A');
+    function setPreset(preset) {
+        applyPreset(materialList, preset);
     }
 
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.7, 1.9), brown);
@@ -926,7 +932,7 @@ function buildDog() {
         legs.push(pivot);
     });
 
-    return { group, body, head, tail, legs, tongue, earL, earR, setColor };
+    return { group, body, head, tail, legs, tongue, earL, earR, setPreset };
 }
 
 
@@ -944,12 +950,12 @@ function buildCat() {
     const pink   = new THREE.MeshStandardMaterial({ color: 0xFF9EB5, roughness: 0.7 });
 
     const materialList = [
-        { mat: orange, lightOffset:  0.00, satMult: 1.00, originalHex: 0xE8A05A },
-        { mat: cream,  lightOffset:  0.28, satMult: 0.30, originalHex: 0xF5E0C3 },
-        { mat: pink,   lightOffset:  0.15, satMult: 1.10, originalHex: 0xFF9EB5 },
+        { mat: orange, role: 'primary',   shade:  0.00, originalHex: 0xE8A05A },
+        { mat: cream,  role: 'secondary', shade:  0.00, originalHex: 0xF5E0C3 },
+        { mat: pink,   role: 'tertiary',  shade:  0.00, originalHex: 0xFF9EB5 },
     ];
-    function setColor(hexColor) {
-        applyTint(materialList, hexColor, '#E8A05A');
+    function setPreset(preset) {
+        applyPreset(materialList, preset);
     }
 
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.55), orange);
@@ -1072,7 +1078,7 @@ function buildCat() {
         legs.push(pivot);
     });
 
-    return { group, body, head, tail, legs, tongue, earL, earR, shineL, shineR, setColor };
+    return { group, body, head, tail, legs, tongue, earL, earR, shineL, shineR, setPreset };
 }
 
 
@@ -1093,15 +1099,15 @@ function buildAxolotl() {
     const pinkMouth = new THREE.MeshStandardMaterial({ color: 0xD14A7E, roughness: 0.6 });
 
     const materialList = [
-        { mat: pinkLight, lightOffset:  0.00, satMult: 1.00, originalHex: 0xFFB8D1 },
-        { mat: pinkMid,   lightOffset: -0.08, satMult: 1.05, originalHex: 0xFF9BC0 },
-        { mat: pinkDark,  lightOffset: -0.16, satMult: 1.10, originalHex: 0xFF6FA8 },
-        { mat: pinkDeep,  lightOffset: -0.24, satMult: 1.15, originalHex: 0xE85B94 },
-        { mat: cream,     lightOffset:  0.20, satMult: 0.30, originalHex: 0xFFE5EE },
-        { mat: pinkMouth, lightOffset: -0.20, satMult: 1.20, originalHex: 0xD14A7E },
+        { mat: pinkLight, role: 'primary',   shade:  0.00, originalHex: 0xFFB8D1 }, // body
+        { mat: pinkMid,   role: 'primary',   shade: -0.06, originalHex: 0xFF9BC0 }, // gill stalks
+        { mat: pinkDark,  role: 'tertiary',  shade:  0.06, originalHex: 0xFF6FA8 }, // gill tip cores
+        { mat: pinkDeep,  role: 'tertiary',  shade: -0.10, originalHex: 0xE85B94 }, // frills
+        { mat: cream,     role: 'secondary', shade:  0.00, originalHex: 0xFFE5EE }, // belly
+        { mat: pinkMouth, role: 'tertiary',  shade: -0.22, originalHex: 0xD14A7E }, // mouth/tongue
     ];
-    function setColor(hexColor) {
-        applyTint(materialList, hexColor, '#FFB8D1');
+    function setPreset(preset) {
+        applyPreset(materialList, preset);
     }
 
     const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 1.75), pinkLight);
@@ -1256,7 +1262,7 @@ function buildAxolotl() {
 
     return {
         group, body, head, tail, legs, tongue,
-        allGills, setColor,
+        allGills, setPreset,
     };
 }
 
