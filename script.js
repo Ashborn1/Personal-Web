@@ -138,14 +138,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 6. Pet Toggle + Pet ---
+    // --- 6. Pet Controls ---
     const petToggle = document.getElementById('petToggle');
-    const PET_STORAGE_KEY = 'petEnabled';
+    const petPicker = document.getElementById('petPicker');
+    const PET_ENABLED_KEY = 'petEnabled';
+    const PET_TYPE_KEY = 'petType';
+
     let currentPet = null;
+    let currentPetType = localStorage.getItem(PET_TYPE_KEY) || 'dog';
+
+    // Sync picker UI with saved type
+    if (petPicker) {
+        petPicker.querySelectorAll('.pet-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.pet === currentPetType);
+        });
+    }
 
     function enablePet() {
         if (currentPet) return;
-        currentPet = initDogPet();
+        currentPet = initPet(currentPetType);
         if (petToggle) petToggle.classList.add('active');
     }
 
@@ -156,9 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (petToggle) petToggle.classList.remove('active');
     }
 
-    // Restore saved preference (default = OFF on first visit)
-    const saved = localStorage.getItem(PET_STORAGE_KEY);
-    if (saved === 'true') {
+    // Restore saved enabled state (default = OFF)
+    if (localStorage.getItem(PET_ENABLED_KEY) === 'true') {
         enablePet();
     }
 
@@ -166,21 +176,42 @@ document.addEventListener('DOMContentLoaded', () => {
         petToggle.addEventListener('click', () => {
             if (currentPet) {
                 disablePet();
-                localStorage.setItem(PET_STORAGE_KEY, 'false');
+                localStorage.setItem(PET_ENABLED_KEY, 'false');
             } else {
                 enablePet();
-                localStorage.setItem(PET_STORAGE_KEY, 'true');
+                localStorage.setItem(PET_ENABLED_KEY, 'true');
             }
+        });
+    }
+
+    if (petPicker) {
+        petPicker.querySelectorAll('.pet-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.pet;
+                if (type === currentPetType) return;
+
+                currentPetType = type;
+                localStorage.setItem(PET_TYPE_KEY, type);
+
+                petPicker.querySelectorAll('.pet-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Live swap if the pet is currently shown
+                if (currentPet) {
+                    currentPet.destroy();
+                    currentPet = initPet(currentPetType);
+                }
+            });
         });
     }
 });
 
 
 /* ================================================================
-   3D DOG PET  —  returns { destroy() } for cleanup
+   PET FACTORY
    ================================================================ */
-function initDogPet() {
-    // Skip if reduced motion — return a no-op handle so toggle still works
+function initPet(type) {
+    // Reduce motion — return no-op handle
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         return { destroy() {} };
     }
@@ -213,15 +244,16 @@ function initDogPet() {
     camera.lookAt(0, 0.8, 0);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const key = new THREE.DirectionalLight(0xffffff, 1.6);
-    key.position.set(3, 5, 4);
-    scene.add(key);
-    const rim = new THREE.DirectionalLight(0x66ccff, 0.6);
-    rim.position.set(-4, 2, -3);
-    scene.add(rim);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    keyLight.position.set(3, 5, 4);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0x66ccff, 0.6);
+    rimLight.position.set(-4, 2, -3);
+    scene.add(rimLight);
 
-    const dog = buildDog();
-    scene.add(dog.group);
+    // --- Build the right model ---
+    const pet = (type === 'cat') ? buildCat() : buildDog();
+    scene.add(pet.group);
 
     const shadow = buildShadow();
     scene.add(shadow);
@@ -229,14 +261,13 @@ function initDogPet() {
     // ============================================================
     // TUNABLES
     // ============================================================
-    const MAX_SPEED     = 1.6;
+    const MAX_SPEED     = type === 'cat' ? 1.8 : 1.6;   // cats are quicker
     const ACCEL_LAMBDA  = 4.5;
     const DECEL_LAMBDA  = 8.0;
     const BLEND         = 10;
     const WALK_FREQ     = 14;
     const ROT_LERP      = 9;
 
-    // --- Runtime ---
     let posX = 0;
     let velX = 0;
     let targetX = 0;
@@ -363,15 +394,15 @@ function initDogPet() {
         const rotSpeed = barkBlend > 0.3 ? ROT_LERP * 1.6 : ROT_LERP;
         rotY += diff * Math.min(1, dt * rotSpeed);
 
-        dog.group.rotation.y = rotY;
-        dog.group.position.x = posX;
+        pet.group.rotation.y = rotY;
+        pet.group.position.x = posX;
 
         // ===== WALK PHASE =====
         const walking = state === 'walk' && Math.abs(velX) > 0.08;
         if (walking) walkPhase += dt * WALK_FREQ * (Math.abs(velX) / MAX_SPEED);
 
         // ===== LEGS =====
-        dog.legs.forEach(leg => {
+        pet.legs.forEach(leg => {
             const phase = leg.userData.phase;
             const isFront = leg.userData.isFront;
             let target = 0;
@@ -412,10 +443,10 @@ function initDogPet() {
             layBlend * 0.05 -
             petBlend * 0.22 -
             barkPulse * 0.08;
-        dog.body.rotation.x = damp(dog.body.rotation.x, bodyTilt, 14, dt);
+        pet.body.rotation.x = damp(pet.body.rotation.x, bodyTilt, 14, dt);
 
         const yOffset = -layBlend * 0.32;
-        dog.group.position.y = bob + yOffset;
+        pet.group.position.y = bob + yOffset;
 
         // ===== HEAD =====
         let headRotX = walking
@@ -427,16 +458,16 @@ function initDogPet() {
         headRotX -= petBlend * 0.35;
         headRotX -= barkPulse * 0.55;
 
-        dog.head.rotation.x = damp(dog.head.rotation.x, headRotX, 18, dt);
+        pet.head.rotation.x = damp(pet.head.rotation.x, headRotX, 18, dt);
 
         let headRotY = 0;
         if (state === 'bark') headRotY = Math.sin(t * 22) * 0.14 * barkBlend;
         if (petBlend > 0.05)  headRotY = Math.sin(t * 2.4) * 0.12 * petBlend;
-        dog.head.rotation.y = damp(dog.head.rotation.y, headRotY, 14, dt);
+        pet.head.rotation.y = damp(pet.head.rotation.y, headRotY, 14, dt);
 
         // ===== EARS =====
-        if (dog.earL) dog.earL.rotation.z = -0.2 - barkPulse * 0.35;
-        if (dog.earR) dog.earR.rotation.z =  0.2 + barkPulse * 0.35;
+        if (pet.earL) pet.earL.rotation.z = -0.2 - barkPulse * 0.35;
+        if (pet.earR) pet.earR.rotation.z =  0.2 + barkPulse * 0.35;
 
         // ===== TAIL =====
         let wagSpeed = 3.5, wagAmp = 0.10;
@@ -446,12 +477,12 @@ function initDogPet() {
         if (sitBlend > 0.5)    { wagSpeed = 4;  wagAmp = 0.15; }
         if (layBlend > 0.5)    { wagSpeed = 2.5; wagAmp = 0.10; }
 
-        dog.tail.rotation.y = Math.sin(t * wagSpeed) * wagAmp;
+        pet.tail.rotation.y = Math.sin(t * wagSpeed) * wagAmp;
 
         // ===== TONGUE =====
         const tongueOut = Math.max(barkBlend, petBlend * 0.7);
-        dog.tongue.scale.set(1, 1, 0.3 + tongueOut * 1.1);
-        dog.tongue.position.z = 0.52 + tongueOut * 0.1;
+        pet.tongue.scale.set(1, 1, 0.3 + tongueOut * 1.1);
+        pet.tongue.position.z = (type === 'cat' ? 0.44 : 0.52) + tongueOut * 0.1;
 
         // ===== SHADOW =====
         shadow.position.x = posX;
@@ -465,8 +496,8 @@ function initDogPet() {
     animate();
 
     // ===== CLICK TO PET =====
-    function getDogScreenPos() {
-        tmpVec.set(posX, 0.9 + dog.group.position.y, 0);
+    function getPetScreenPos() {
+        tmpVec.set(posX, 0.9 + pet.group.position.y, 0);
         tmpVec.project(camera);
         const rect = canvas.getBoundingClientRect();
         return {
@@ -478,13 +509,13 @@ function initDogPet() {
     const HIT_RADIUS = 100;
 
     function onClick(e) {
-        if (e.target.closest('.bottom-nav, .lightbox, .modern-btn, a, button, input, textarea')) return;
-        const p = getDogScreenPos();
+        if (e.target.closest('.bottom-nav, .lightbox, .modern-btn, a, button, input, textarea, .pet-controls')) return;
+        const p = getPetScreenPos();
         if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < HIT_RADIUS) setState('pet');
     }
 
     function onMove(e) {
-        const p = getDogScreenPos();
+        const p = getPetScreenPos();
         document.body.style.cursor = Math.hypot(e.clientX - p.x, e.clientY - p.y) < HIT_RADIUS ? 'pointer' : '';
     }
 
@@ -503,7 +534,6 @@ function initDogPet() {
     document.addEventListener('mousemove', onMove);
     window.addEventListener('resize', onResize);
 
-    // ===== CLEANUP HANDLE =====
     return {
         destroy() {
             alive = false;
@@ -626,6 +656,154 @@ function buildDog() {
 
         const paw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.28), cream);
         paw.position.set(0, -0.58, 0.03);
+        pivot.add(paw);
+
+        body.add(pivot);
+        legs.push(pivot);
+    });
+
+    return { group, body, head, tail, legs, tongue, earL, earR };
+}
+
+
+/* ================================================================
+   BUILD CAT  — slimmer body, pointy ears, longer curved tail
+   ================================================================ */
+function buildCat() {
+    const group = new THREE.Group();
+    const body = new THREE.Group();
+    group.add(body);
+
+    // Colors
+    const orange = new THREE.MeshStandardMaterial({ color: 0xE8A05A, roughness: 0.85, metalness: 0.05 });
+    const cream  = new THREE.MeshStandardMaterial({ color: 0xF5E0C3, roughness: 0.9 });
+    const dark   = new THREE.MeshStandardMaterial({ color: 0x1A1005, roughness: 0.35 });
+    const pink   = new THREE.MeshStandardMaterial({ color: 0xFF9EB5, roughness: 0.7 });
+
+    // --- TORSO (slimmer + shorter than dog) ---
+    // Width 0.7, height 0.6, length 1.55
+    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.55), orange);
+    bodyMesh.position.y = 0.75;
+    body.add(bodyMesh);
+
+    const belly = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 1.4), cream);
+    belly.position.set(0, 0.47, 0);
+    body.add(belly);
+
+    // --- HEAD (smaller, rounder) ---
+    const head = new THREE.Group();
+    head.position.set(0, 1.05, 0.78);
+    body.add(head);
+
+    const skull = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), orange);
+    head.add(skull);
+
+    // Small cream snout
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.24, 0.28), cream);
+    snout.position.set(0, -0.1, 0.42);
+    head.add(snout);
+
+    // Pink nose
+    const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.08), pink);
+    noseMesh.position.set(0, -0.02, 0.58);
+    head.add(noseMesh);
+
+    // Big eyes
+    const eyeGeo = new THREE.BoxGeometry(0.14, 0.16, 0.05);
+    const eyeL = new THREE.Mesh(eyeGeo, dark);
+    eyeL.position.set(-0.17, 0.1, 0.31);
+    head.add(eyeL);
+    const eyeR = new THREE.Mesh(eyeGeo, dark);
+    eyeR.position.set(0.17, 0.1, 0.31);
+    head.add(eyeR);
+
+    // Eye shine
+    const shineGeo = new THREE.BoxGeometry(0.05, 0.05, 0.02);
+    const shineMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
+    const sL = new THREE.Mesh(shineGeo, shineMat);
+    sL.position.set(-0.14, 0.14, 0.34);
+    head.add(sL);
+    const sR = new THREE.Mesh(shineGeo, shineMat);
+    sR.position.set(0.2, 0.14, 0.34);
+    head.add(sR);
+
+    // Pointy triangular ears (cones)
+    const earGeo = new THREE.ConeGeometry(0.15, 0.32, 4);
+    const earL = new THREE.Mesh(earGeo, orange);
+    earL.position.set(-0.22, 0.42, 0);
+    earL.rotation.y = Math.PI / 4;
+    earL.rotation.z = -0.15;
+    head.add(earL);
+    const earR = new THREE.Mesh(earGeo, orange);
+    earR.position.set(0.22, 0.42, 0);
+    earR.rotation.y = Math.PI / 4;
+    earR.rotation.z = 0.15;
+    head.add(earR);
+
+    // Inner ear (pink)
+    const innerEarGeo = new THREE.ConeGeometry(0.08, 0.2, 4);
+    const innerL = new THREE.Mesh(innerEarGeo, pink);
+    innerL.position.set(-0.22, 0.4, 0.05);
+    innerL.rotation.y = Math.PI / 4;
+    innerL.rotation.z = -0.15;
+    head.add(innerL);
+    const innerR = new THREE.Mesh(innerEarGeo, pink);
+    innerR.position.set(0.22, 0.4, 0.05);
+    innerR.rotation.y = Math.PI / 4;
+    innerR.rotation.z = 0.15;
+    head.add(innerR);
+
+    // Tiny tongue
+    const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.04), pink);
+    tongue.position.set(0, -0.2, 0.44);
+    tongue.scale.set(1, 1, 0.3);
+    head.add(tongue);
+
+    // --- TAIL (longer, thinner, curves up) ---
+    const tail = new THREE.Group();
+    tail.position.set(0, 0.85, -0.75);
+    body.add(tail);
+
+    const tailInner = new THREE.Group();
+    tailInner.rotation.x = 0.9; // much more vertical than dog
+    tail.add(tailInner);
+
+    const tailSeg1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.28), orange);
+    tailSeg1.position.set(0, 0, -0.14);
+    tailInner.add(tailSeg1);
+
+    const tailSeg2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.28), orange);
+    tailSeg2.position.set(0, 0.02, -0.4);
+    tailInner.add(tailSeg2);
+
+    const tailSeg3 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.26), orange);
+    tailSeg3.position.set(0, 0.05, -0.65);
+    tailInner.add(tailSeg3);
+
+    const tailTip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.2), cream);
+    tailTip.position.set(0, 0.08, -0.86);
+    tailInner.add(tailTip);
+
+    // --- LEGS (shorter + thinner) ---
+    const legs = [];
+    const legLayout = [
+        { x: -0.27, z:  0.5, phase: 0,       isFront: true  },
+        { x:  0.27, z:  0.5, phase: Math.PI, isFront: true  },
+        { x: -0.27, z: -0.5, phase: Math.PI, isFront: false },
+        { x:  0.27, z: -0.5, phase: 0,       isFront: false },
+    ];
+    legLayout.forEach(cfg => {
+        const pivot = new THREE.Group();
+        pivot.position.set(cfg.x, 0.5, cfg.z);
+        pivot.userData.phase = cfg.phase;
+        pivot.userData.isFront = cfg.isFront;
+
+        const legMesh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.45, 0.16), orange);
+        legMesh.position.y = -0.225;
+        pivot.add(legMesh);
+
+        const paw = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.24), cream);
+        paw.position.set(0, -0.47, 0.03);
         pivot.add(paw);
 
         body.add(pivot);
