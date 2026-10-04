@@ -611,3 +611,55 @@ img {
     .nav-item i { margin-bottom: 0; font-size: 1.4rem; }
     .nav-item { padding: 12px; }
 }
+
+/* --- Pet Toggle Button --- */
+.pet-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(5, 8, 15, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    z-index: 1001;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pet-toggle:hover {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
+}
+
+.pet-toggle.active {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+}
+
+.pet-toggle.active i {
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
+}
+
+@media (max-width: 768px) {
+    .pet-toggle {
+        top: 15px;
+        right: 15px;
+        width: 42px;
+        height: 42px;
+        font-size: 0.95rem;
+    }
+}
